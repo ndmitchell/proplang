@@ -36,6 +36,20 @@
 	  <property name="show_arrow">True</property>
 
 	  <child>
+	    <widget class="GtkToolButton" id="tbNew">
+	      <property name="visible">True</property>
+	      <property name="stock_id">gtk-new</property>
+	      <property name="visible_horizontal">True</property>
+	      <property name="visible_vertical">True</property>
+	      <property name="is_important">False</property>
+	    </widget>
+	    <packing>
+	      <property name="expand">False</property>
+	      <property name="homogeneous">True</property>
+	    </packing>
+	  </child>
+
+	  <child>
 	    <widget class="GtkToolButton" id="tbOpen">
 	      <property name="visible">True</property>
 	      <property name="stock_id">gtk-open</property>
