@@ -2,18 +2,19 @@
 module PropLang.Variable(
     Var, newVar, newVarName, newVarWith, newVarWithName,
     getVar,
-    with, with1, (-<), (=<), (=<=)
+    with, with1, with2,
+    (-<), (=<), (=<=)
     ) where
 
 import PropLang.Event
 import PropLang.Value
 import Data.IORef
 
-infixr 1  =<=, =<, -<
+infixr 1  =<, -<, =<=
 
 
 
-data Var a = Var (Value a) Event (IORef (Maybe EventHandle))
+data Var a = Var (Value a) Event (IORef [EventHandle])
 
 
 newVar :: a -> IO (Var a)
@@ -29,7 +30,7 @@ newVarWithName :: String -> (Event -> IO (Value a)) -> IO (Var a)
 newVarWithName name f = do
     e <- newEventName name
     v <- f e
-    i <- newIORef Nothing
+    i <- newIORef []
     return $ Var v e i
 
 
@@ -41,30 +42,43 @@ instance Eventer (Var a) where
     event (Var a b c) = b
 
 
-data Action a b = Action (Var a) (a -> b)
-
-with1 :: Var a -> (a -> b) -> Action a b
-with1 var f = Action var f
-
-with :: Var a -> Action a a
-with var = with1 var id
-
-
 (-<) :: Var a -> a -> IO ()
-(-<) (Var a b c) val = (valSet a) val
+(-<) (Var val b source) x = do
+    writeIORef source []
+    (valSet val) x
+
 
 (=<=) :: Var a -> Var a -> IO ()
-(=<=) to from = to =< with from
+a =<= b = a =< with1 b id
 
-(=<) :: Var a -> Action b a -> IO ()
-(=<) (Var valTo _ source) (Action varFrom  f) = do
+
+with = with1
+
+with1 :: Var a -> (a -> x) -> Var x -> IO ()
+with1 varFrom f (Var valTo _ source) = do
     srcOld <- readIORef source
-    case srcOld of
-        Nothing -> return ()
-        Just x -> remove x
+    mapM_ remove srcOld
     note <- varFrom += g
-    writeIORef source (Just note)
+    writeIORef source [note]
     g
     where
         g = do v <- getVar varFrom
                (valSet valTo) (f v)
+
+with2 :: Var a -> Var b -> (a -> b -> x) -> Var x -> IO ()
+with2 varFrom1 varFrom2 f (Var valTo _ source) = do
+    srcOld <- readIORef source
+    mapM_ remove srcOld
+    note1 <- varFrom1 += g
+    note2 <- varFrom1 += g
+    writeIORef source [note1, note2]
+    g
+    where
+        g = do v1 <- getVar varFrom1
+               v2 <- getVar varFrom2
+               (valSet valTo) (f v1 v2)
+
+
+(=<) :: Var a -> (Var a -> IO ()) -> IO ()
+(=<) var f = f var
+
