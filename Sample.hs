@@ -6,6 +6,8 @@ import PropLang.Event
 import Control.Monad
 import Data.Maybe
 
+import Graphics.UI.Gtk.Windows.Dialog
+
 
 data Gui = Gui {
     window :: Window,
@@ -55,12 +57,13 @@ main = do
     txt!enabled =<= document
     new!enabled =< with1 document not 
     close!enabled =<= document
-    saveas!enabled =<= document
+    saveas!enabled =< with2 document modified (&&)
     save!enabled =< with3 document modified filename
         (\d m f -> d && m && isJust f)
     
     new!onClicked += newDocument gui
     save!onClicked += saveDocument gui
+    saveas!onClicked += saveAsDocument gui
     close!onClicked += closeDocument gui
     open!onClicked += openDocument gui
     
@@ -88,11 +91,16 @@ newDocument gui@Gui{document=document, modified=modified} = do
 saveDocument :: Gui -> IO ()
 saveDocument gui@Gui{filename=filename, modified=modified} = do
     return ()
-    
+
+
+saveAsDocument :: Gui -> IO ()
+saveAsDocument gui@Gui{modified=modified} = do
+    modified -< False
 
 
 closeDocument :: Gui -> IO ()
-closeDocument gui = do
+closeDocument gui@Gui{modified=modified} = do
+    modified -< False
     shutDocument gui
     return ()
 
@@ -108,6 +116,7 @@ shutDocument :: Gui -> IO Bool
 shutDocument gui@Gui{modified=modified, txt=txt, filename=filename, document=document} = do
     moded <- getVar modified
     if moded then do
+        promptSave gui
         return False
      else do
         txt!text -< ""
@@ -116,12 +125,18 @@ shutDocument gui@Gui{modified=modified, txt=txt, filename=filename, document=doc
         modified -< False
         return True
 
-{-
 
 promptSave :: Gui -> IO Bool
+promptSave gui = do
+    dlg <- dialogNew
+    dialogAddButton dlg "Yes" ResponseYes
+    dialogAddButton dlg "No" ResponseNo
+    dialogAddButton dlg "Cancel" ResponseCancel
+    dialogSetDefaultResponse dlg ResponseYes
+    res <- dialogRun dlg
+    return False
 
-
-
+{-
 -- make sure there is a filename
 -- so that you can save to it
 ensureFilename :: Gui -> IO Bool
