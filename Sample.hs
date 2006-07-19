@@ -37,8 +37,11 @@ main = do
                   document=document, modified=modified, filename=filename}
     
     
-    window!text =<= txt!text
-    txt!text -< "hi everyone :)"
+    -- window!text =<= txt!text
+    -- txt!text -< "hi everyone :)"
+    
+    txt!enabled =<= document
+    
     
     sb!text =< with1 (txt!text) (\x ->
         "Word count: " ++ show (length $ words x))

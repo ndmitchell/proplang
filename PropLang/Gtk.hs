@@ -1,6 +1,7 @@
 
 module PropLang.Gtk(
-    text, (!),
+    (!),
+    text, enabled,
     initPropLang, mainPropLang,
     Window, getWindow, showWindow, showWindowMain,
     TextBox, getTextBox,
@@ -42,6 +43,9 @@ instance TextProvider Window where; text = windowText
 instance TextProvider TextBox where; text = textboxText
 instance TextProvider StatusBar where; text = statusbarText
 
+class EnabledProvider a where; enabled :: a -> Var Bool
+instance EnabledProvider TextBox where; enabled = textboxEnabled
+
 
 -- Helper stuff
 
@@ -76,7 +80,7 @@ getWindow file name = do
                 Nothing -> error $ "Can't find the glade file \"" ++ file ++ "\""
 
         wnd <- xmlGetWidget dialogXml castToWindow name
-        windowText <- gtkProp ("gtk.window[" ++ name ++ "]")
+        windowText <- gtkProp ("gtk.window.text[" ++ name ++ "]")
                               (windowSetTitle wnd)
                               (windowGetTitle wnd)
         return $ Window dialogXml wnd windowText
@@ -88,7 +92,8 @@ showWindow wnd = widgetShowAll $ window wnd
 
 
 data TextBox = TextBox {
-    textbox :: Gtk.TextView, textboxText :: Var String
+    textbox :: Gtk.TextView,
+    textboxText :: Var String, textboxEnabled :: Var Bool
     }
 
 
@@ -96,17 +101,27 @@ getTextBox :: Window -> String -> IO TextBox
 getTextBox window ctrl = do
     txt <- xmlGetWidget (xml window) castToTextView ctrl
     buf <- textViewGetBuffer txt
-    windowText <- gtkPropEvent ("gtk.textbox[" ++ ctrl ++ "]")
-                               (afterBufferChanged buf)
-                               (textBufferSetText buf)
-                               (textBufferGet buf)
-    return $ TextBox txt windowText
+    textboxText <- gtkPropEvent ("gtk.textbox.text[" ++ ctrl ++ "]")
+                                (afterBufferChanged buf)
+                                (textBufferSetText buf)
+                                (textBufferGet buf)
+    textboxEnabled <- gtkProp ("gtk.textbox.enabled[" ++ ctrl ++ "]")
+                              (widgetSetSensitivity txt)
+                              (widgetGetSensitivity txt)
+    
+    return $ TextBox txt textboxText textboxEnabled
 
     where
         textBufferGet buf = do
             strt <- textBufferGetStartIter buf
             end <- textBufferGetEndIter buf
             textBufferGetText buf strt end False
+
+
+widgetGetSensitivity :: WidgetClass self => self -> IO Bool
+widgetGetSensitivity x = do
+    y <- widgetGetState x
+    return (y /= StateInsensitive)
 
 
 ignore2 :: ((a -> b -> IO ()) -> IO ans) -> IO () -> IO ans
