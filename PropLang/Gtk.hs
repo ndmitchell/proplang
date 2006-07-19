@@ -6,11 +6,11 @@ module PropLang.Gtk(
     Window, getWindow, showWindow, showWindowMain,
     TextBox, getTextBox,
     StatusBar, getStatusBar,
-    --ToolButton, getToolButton,
+    ToolButton, getToolButton,
     ) where
 
 import qualified Graphics.UI.Gtk as Gtk
-import Graphics.UI.Gtk hiding (Action, Window)
+import Graphics.UI.Gtk hiding (Action, Window, ToolButton)
 import Graphics.UI.Gtk.Glade
 import qualified Graphics.UI.Gtk.Multiline.TextView as GtkMultiline
 
@@ -45,6 +45,7 @@ instance TextProvider StatusBar where; text = statusbarText
 
 class EnabledProvider a where; enabled :: a -> Var Bool
 instance EnabledProvider TextBox where; enabled = textboxEnabled
+instance EnabledProvider ToolButton where; enabled = toolbuttonEnabled
 
 
 -- Helper stuff
@@ -105,10 +106,7 @@ getTextBox window ctrl = do
                                 (afterBufferChanged buf)
                                 (textBufferSetText buf)
                                 (textBufferGet buf)
-    textboxEnabled <- gtkProp ("gtk.textbox.enabled[" ++ ctrl ++ "]")
-                              (widgetSetSensitivity txt)
-                              (widgetGetSensitivity txt)
-    
+    textboxEnabled <- newEnabled txt ("gtk.textbox.enabled[" ++ ctrl ++ "]")
     return $ TextBox txt textboxText textboxEnabled
 
     where
@@ -122,6 +120,10 @@ widgetGetSensitivity :: WidgetClass self => self -> IO Bool
 widgetGetSensitivity x = do
     y <- widgetGetState x
     return (y /= StateInsensitive)
+
+
+newEnabled :: WidgetClass a => a -> String -> IO (Var Bool)
+newEnabled x name = gtkProp name (widgetSetSensitivity x) (widgetGetSensitivity x)
 
 
 ignore2 :: ((a -> b -> IO ()) -> IO ans) -> IO () -> IO ans
@@ -149,6 +151,19 @@ getStatusBar window ctrl = do
             statusbarPop sb context
             statusbarPush sb context x
             return ()
+
+data ToolButton = ToolButton {
+    toolbutton :: Gtk.ToolButton, toolbuttonEnabled :: Var Bool
+    }
+
+
+getToolButton :: Window -> String -> IO ToolButton
+getToolButton window ctrl = do
+    tb <- xmlGetWidget (xml window) (castToToolButton) ctrl
+    tbEnabled <- newEnabled tb ("gtk.toolbutton.enabled[" ++ ctrl ++ "]")
+    return $ ToolButton tb tbEnabled
+
+
 
     
     {-
