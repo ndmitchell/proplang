@@ -78,6 +78,20 @@
 	  </child>
 
 	  <child>
+	    <widget class="GtkToolButton" id="tbSaveAs">
+	      <property name="visible">True</property>
+	      <property name="stock_id">gtk-save-as</property>
+	      <property name="visible_horizontal">True</property>
+	      <property name="visible_vertical">True</property>
+	      <property name="is_important">False</property>
+	    </widget>
+	    <packing>
+	      <property name="expand">False</property>
+	      <property name="homogeneous">True</property>
+	    </packing>
+	  </child>
+
+	  <child>
 	    <widget class="GtkToolButton" id="tbClose">
 	      <property name="visible">True</property>
 	      <property name="stock_id">gtk-close</property>
