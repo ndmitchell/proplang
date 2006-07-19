@@ -1,7 +1,7 @@
 
 module PropLang.Gtk(
     (!),
-    text, enabled,
+    text, enabled, onClicked,
     initPropLang, mainPropLang,
     Window, getWindow, showWindow, showWindowMain,
     TextBox, getTextBox,
@@ -10,9 +10,8 @@ module PropLang.Gtk(
     ) where
 
 import qualified Graphics.UI.Gtk as Gtk
-import Graphics.UI.Gtk hiding (Action, Window, ToolButton)
+import Graphics.UI.Gtk hiding (Action, Window, ToolButton, Event, onClicked)
 import Graphics.UI.Gtk.Glade
-import qualified Graphics.UI.Gtk.Multiline.TextView as GtkMultiline
 
 import PropLang.Variable
 import PropLang.Value
@@ -47,6 +46,8 @@ class EnabledProvider a where; enabled :: a -> Var Bool
 instance EnabledProvider TextBox where; enabled = textboxEnabled
 instance EnabledProvider ToolButton where; enabled = toolbuttonEnabled
 
+class OnClickedProvider a where; onClicked :: a -> Event
+instance OnClickedProvider ToolButton where; onClicked = toolbuttonOnClicked
 
 -- Helper stuff
 
@@ -153,7 +154,9 @@ getStatusBar window ctrl = do
             return ()
 
 data ToolButton = ToolButton {
-    toolbutton :: Gtk.ToolButton, toolbuttonEnabled :: Var Bool
+    toolbutton :: Gtk.ToolButton,
+    toolbuttonEnabled :: Var Bool,
+    toolbuttonOnClicked :: Event
     }
 
 
@@ -161,7 +164,9 @@ getToolButton :: Window -> String -> IO ToolButton
 getToolButton window ctrl = do
     tb <- xmlGetWidget (xml window) (castToToolButton) ctrl
     tbEnabled <- newEnabled tb ("gtk.toolbutton.enabled[" ++ ctrl ++ "]")
-    return $ ToolButton tb tbEnabled
+    tbClicked <- newEventName $ "gtk.toolbutton.clicked[" ++ ctrl ++ "]"
+    tb `onToolButtonClicked` raise tbClicked
+    return $ ToolButton tb tbEnabled tbClicked
 
 
 
