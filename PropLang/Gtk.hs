@@ -4,7 +4,7 @@ module PropLang.Gtk(
     initPropLang, mainPropLang,
     Window, getWindow, showWindow, showWindowMain,
     TextBox, getTextBox,
-    --StatusBar, getStatusBar,
+    StatusBar, getStatusBar,
     --ToolButton, getToolButton,
     ) where
 
@@ -16,6 +16,9 @@ import qualified Graphics.UI.Gtk.Multiline.TextView as GtkMultiline
 import PropLang.Variable
 import PropLang.Value
 import PropLang.Event
+
+import Data.IORef
+import Foreign.C.Types
 
 
 -- Initialisation stuff from GTK
@@ -37,6 +40,7 @@ object ! prop = prop object
 class TextProvider a where; text :: a -> Var String
 instance TextProvider Window where; text = windowText
 instance TextProvider TextBox where; text = textboxText
+instance TextProvider StatusBar where; text = statusbarText
 
 
 -- Helper stuff
@@ -108,6 +112,28 @@ getTextBox window ctrl = do
 ignore2 :: ((a -> b -> IO ()) -> IO ans) -> IO () -> IO ans
 ignore2 app f = app (\a b -> f)
 
+
+data StatusBar = StatusBar {
+    statusbar :: Gtk.Statusbar, statusbarText :: Var String,
+    context :: CUInt, statusbarValue :: IORef String
+    }
+
+getStatusBar :: Window -> String -> IO StatusBar
+getStatusBar window ctrl = do
+    sb <- xmlGetWidget (xml window) (castToStatusbar) ctrl
+    context <- statusbarGetContextId sb ""
+    val <- newIORef ""
+    statusbarText <- gtkProp ("gtk.statusbar[" ++ ctrl ++ "]")
+                             (statusBarSet sb val context)
+                             (readIORef val)
+    return $ StatusBar sb statusbarText context val
+    
+    where
+        statusBarSet sb val context x = do
+            writeIORef val x
+            statusbarPop sb context
+            statusbarPush sb context x
+            return ()
 
     
     {-
