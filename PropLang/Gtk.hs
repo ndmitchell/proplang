@@ -4,13 +4,13 @@ module PropLang.Gtk(
     text, enabled, onClicked,
     initPropLang, mainPropLang,
     Window, getWindow, showWindow, showWindowMain,
-    TextBox, getTextBox,
+    TextView, getTextView,
     StatusBar, getStatusBar,
     ToolButton, getToolButton,
     ) where
 
 import qualified Graphics.UI.Gtk as Gtk
-import Graphics.UI.Gtk hiding (Action, Window, ToolButton, Event, onClicked)
+import Graphics.UI.Gtk hiding (Action, Window, TextView, ToolButton, Event, onClicked)
 import Graphics.UI.Gtk.Glade
 
 import PropLang.Variable
@@ -39,11 +39,11 @@ object ! prop = prop object
 
 class TextProvider a where; text :: a -> Var String
 instance TextProvider Window where; text = windowText
-instance TextProvider TextBox where; text = textboxText
+instance TextProvider TextView where; text = textviewText
 instance TextProvider StatusBar where; text = statusbarText
 
 class EnabledProvider a where; enabled :: a -> Var Bool
-instance EnabledProvider TextBox where; enabled = textboxEnabled
+instance EnabledProvider TextView where; enabled = textviewEnabled
 instance EnabledProvider ToolButton where; enabled = toolbuttonEnabled
 
 class OnClickedProvider a where; onClicked :: a -> Event
@@ -93,22 +93,22 @@ showWindow wnd = widgetShowAll $ window wnd
 
 
 
-data TextBox = TextBox {
-    textbox :: Gtk.TextView,
-    textboxText :: Var String, textboxEnabled :: Var Bool
+data TextView = TextView {
+    textview :: Gtk.TextView,
+    textviewText :: Var String, textviewEnabled :: Var Bool
     }
 
 
-getTextBox :: Window -> String -> IO TextBox
-getTextBox window ctrl = do
+getTextView :: Window -> String -> IO TextView
+getTextView window ctrl = do
     txt <- xmlGetWidget (xml window) castToTextView ctrl
     buf <- textViewGetBuffer txt
-    textboxText <- gtkPropEvent ("gtk.textbox.text[" ++ ctrl ++ "]")
+    textviewText <- gtkPropEvent ("gtk.textview.text[" ++ ctrl ++ "]")
                                 (afterBufferChanged buf)
                                 (textBufferSetText buf)
                                 (textBufferGet buf)
-    textboxEnabled <- newEnabled txt ("gtk.textbox.enabled[" ++ ctrl ++ "]")
-    return $ TextBox txt textboxText textboxEnabled
+    textviewEnabled <- newEnabled txt ("gtk.textview.enabled[" ++ ctrl ++ "]")
+    return $ TextView txt textviewText textviewEnabled
 
     where
         textBufferGet buf = do
