@@ -12,6 +12,7 @@ module PropLang.Gtk(
 import qualified Graphics.UI.Gtk as Gtk
 import Graphics.UI.Gtk hiding (Action, Window, TextView, ToolButton, Event, onClicked)
 import Graphics.UI.Gtk.Glade
+import System.Glib
 
 import PropLang.Variable
 import PropLang.Value
@@ -19,6 +20,7 @@ import PropLang.Event
 
 import Data.IORef
 import Foreign.C.Types
+import Control.Exception
 
 
 -- Initialisation stuff from GTK
@@ -70,6 +72,7 @@ gtkPropEvent name reg set get = newVarWithName name f
 
 data Window = Window {
     xml :: GladeXML, window :: Gtk.Window,
+    children :: [Widget],
     windowText :: Var String
     }
 
@@ -85,7 +88,9 @@ getWindow file name = do
         windowText <- gtkProp ("gtk.window.text[" ++ name ++ "]")
                               (windowSetTitle wnd)
                               (windowGetTitle wnd)
-        return $ Window dialogXml wnd windowText
+                              
+        children <- getChildWindowsAll $ toWidget wnd
+        return $ Window dialogXml wnd children windowText
 
 
 showWindow :: Window -> IO ()
@@ -168,6 +173,42 @@ getToolButton window ctrl = do
     tb `onToolButtonClicked` raise tbClicked
     return $ ToolButton tb tbEnabled tbClicked
 
+
+
+
+
+
+
+-- window enumeration
+getChildWindowsAll :: Widget -> IO [Widget]
+getChildWindowsAll w = do
+    child <- getChildWindows w
+    child2 <- mapM getChildWindowsAll child
+    return $ child ++ concat child2
+
+
+getChildWindows :: Widget -> IO [Widget]
+getChildWindows w = do
+        c <- getContainerMaybe w
+        case c of
+            Nothing -> return []
+            Just c -> do
+                i <- newIORef []
+                containerForeach c (f i)
+                readIORef i
+    where
+        f i x = do
+            r <- readIORef i
+            writeIORef i (x:r)
+            
+
+getContainerMaybe :: GObjectClass obj => obj -> IO (Maybe Container)
+getContainerMaybe o = 
+    Control.Exception.catch
+        (do c <- return $ castToContainer o
+            c `seq` return (Just c)
+        )
+        (\e -> return Nothing)
 
 
     
