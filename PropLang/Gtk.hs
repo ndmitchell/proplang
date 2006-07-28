@@ -189,7 +189,7 @@ getChildWindowsAll w = do
 
 getChildWindows :: Widget -> IO [Widget]
 getChildWindows w = do
-        c <- getContainerMaybe w
+        c <- getWidgetMaybe castToContainer w
         case c of
             Nothing -> return []
             Just c -> do
@@ -202,11 +202,11 @@ getChildWindows w = do
             writeIORef i (x:r)
             
 
-getContainerMaybe :: GObjectClass obj => obj -> IO (Maybe Container)
-getContainerMaybe o = 
+getWidgetMaybe :: GObjectClass obj => (obj -> conc) -> obj -> IO (Maybe conc)
+getWidgetMaybe cast o = 
     Control.Exception.catch
-        (do c <- return $ castToContainer o
-            c `seq` return (Just c)
+        (do c <- return $ cast o
+            c `seq` return (Just c) -- return $! Just $! c
         )
         (\e -> return Nothing)
 
