@@ -19,6 +19,7 @@ import PropLang.Value
 import PropLang.Event
 
 import Data.IORef
+import Data.Maybe
 import Foreign.C.Types
 import Control.Exception
 
@@ -70,6 +71,11 @@ gtkPropEvent name reg set get = newVarWithName name f
 
 -- Window
 
+data AWidget = ATextView TextView
+             | AStatusBar StatusBar
+             | AToolButton ToolButton
+
+
 data Window = Window {
     xml :: GladeXML, window :: Gtk.Window,
     children :: [Widget],
@@ -95,6 +101,22 @@ getWindow file name = do
 
 showWindow :: Window -> IO ()
 showWindow wnd = widgetShowAll $ window wnd
+
+
+
+liftWidget :: Widget -> IO AWidget
+liftWidget x = do
+    tv <- getWidgetMaybe castToTextView x
+    sb <- getWidgetMaybe castToStatusbar x
+    tb <- getWidgetMaybe castToToolButton x
+    case () of
+        _ | isJust tv -> f ATextView liftTextView tv
+        _ | isJust sb -> f AStatusBar liftStatusBar sb
+        _ | isJust tb -> f AToolButton liftToolButton tb
+    where
+        f wrap conv (Just x) = do
+            x2 <- conv x
+            return $ wrap x2
 
 
 
