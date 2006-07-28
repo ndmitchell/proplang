@@ -242,9 +242,7 @@ getChildWindows w = do
 getWidgetMaybe :: GObjectClass obj => (obj -> conc) -> obj -> IO (Maybe conc)
 getWidgetMaybe cast o = 
     Control.Exception.catch
-        (do c <- return $ cast o
-            c `seq` return (Just c) -- return $! Just $! c
-        )
+        (return $! Just $! cast o)
         (\e -> return Nothing)
 
 
