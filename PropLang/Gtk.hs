@@ -107,12 +107,17 @@ data TextView = TextView {
 getTextView :: Window -> String -> IO TextView
 getTextView window ctrl = do
     txt <- xmlGetWidget (xml window) castToTextView ctrl
+    liftTextView txt
+
+liftTextView :: Gtk.TextView -> IO TextView
+liftTextView txt = do
+    name <- widgetGetName txt
     buf <- textViewGetBuffer txt
-    textviewText <- gtkPropEvent ("gtk.textview.text[" ++ ctrl ++ "]")
+    textviewText <- gtkPropEvent ("gtk.textview.text[" ++ name ++ "]")
                                 (afterBufferChanged buf)
                                 (textBufferSetText buf)
                                 (textBufferGet buf)
-    textviewEnabled <- newEnabled txt ("gtk.textview.enabled[" ++ ctrl ++ "]")
+    textviewEnabled <- newEnabled txt ("gtk.textview.enabled[" ++ name ++ "]")
     return $ TextView txt textviewText textviewEnabled
 
     where
@@ -144,9 +149,14 @@ data StatusBar = StatusBar {
 getStatusBar :: Window -> String -> IO StatusBar
 getStatusBar window ctrl = do
     sb <- xmlGetWidget (xml window) (castToStatusbar) ctrl
+    liftStatusBar sb
+
+liftStatusBar :: Gtk.Statusbar -> IO StatusBar
+liftStatusBar sb = do
+    name <- widgetGetName sb
     context <- statusbarGetContextId sb ""
     val <- newIORef ""
-    statusbarText <- gtkProp ("gtk.statusbar[" ++ ctrl ++ "]")
+    statusbarText <- gtkProp ("gtk.statusbar[" ++ name ++ "]")
                              (statusBarSet sb val context)
                              (readIORef val)
     return $ StatusBar sb statusbarText context val
@@ -168,8 +178,13 @@ data ToolButton = ToolButton {
 getToolButton :: Window -> String -> IO ToolButton
 getToolButton window ctrl = do
     tb <- xmlGetWidget (xml window) (castToToolButton) ctrl
-    tbEnabled <- newEnabled tb ("gtk.toolbutton.enabled[" ++ ctrl ++ "]")
-    tbClicked <- newEventName $ "gtk.toolbutton.clicked[" ++ ctrl ++ "]"
+    liftToolButton tb
+
+liftToolButton :: Gtk.ToolButton -> IO ToolButton
+liftToolButton tb = do
+    name <- widgetGetName tb
+    tbEnabled <- newEnabled tb ("gtk.toolbutton.enabled[" ++ name ++ "]")
+    tbClicked <- newEventName $ "gtk.toolbutton.clicked[" ++ name ++ "]"
     tb `onToolButtonClicked` raise tbClicked
     return $ ToolButton tb tbEnabled tbClicked
 
