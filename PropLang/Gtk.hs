@@ -20,6 +20,7 @@ import PropLang.Event
 
 import Data.IORef
 import Data.Maybe
+import Data.List
 import Foreign.C.Types
 import Control.Exception
 
@@ -78,7 +79,7 @@ data AWidget = ATextView TextView
 
 data Window = Window {
     xml :: GladeXML, window :: Gtk.Window,
-    children :: [Widget],
+    children :: [(String,AWidget)],
     windowText :: Var String
     }
 
@@ -96,7 +97,16 @@ getWindow file name = do
                               (windowGetTitle wnd)
                               
         children <- getChildWindowsAll $ toWidget wnd
-        return $ Window dialogXml wnd children windowText
+        c2 <- mapM f children
+        return $ Window dialogXml wnd (concat c2) windowText
+    where
+        f w = do
+            name <- widgetGetName w
+            if "Gtk" `isPrefixOf` name
+                then return []
+                else do x <- liftWidget w
+                        return [(name,x)]
+                
 
 
 showWindow :: Window -> IO ()
