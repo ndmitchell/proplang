@@ -7,6 +7,7 @@ module PropLang.Gtk(
     TextView, getTextView,
     StatusBar, getStatusBar,
     ToolButton, getToolButton,
+    getCtrl
     ) where
 
 import qualified Graphics.UI.Gtk as Gtk
@@ -75,6 +76,7 @@ gtkPropEvent name reg set get = newVarWithName name f
 data AWidget = ATextView TextView
              | AStatusBar StatusBar
              | AToolButton ToolButton
+             | AUnknown
 
 
 data Window = Window {
@@ -123,11 +125,25 @@ liftWidget x = do
         _ | isJust tv -> f ATextView liftTextView tv
         _ | isJust sb -> f AStatusBar liftStatusBar sb
         _ | isJust tb -> f AToolButton liftToolButton tb
+        _ -> return AUnknown
     where
         f wrap conv (Just x) = do
             x2 <- conv x
             return $ wrap x2
 
+
+getAWidget :: (AWidget -> a) -> Window -> String -> a
+getAWidget f wnd name = case lookup name (children wnd) of
+                            Nothing -> error $ "Widget not found: " ++ name
+                            Just x -> f x
+
+
+class GetCtrl a where
+    getCtrl :: Window -> String -> a
+
+instance GetCtrl TextView where ; getCtrl = getTextView
+instance GetCtrl StatusBar where ; getCtrl = getStatusBar
+instance GetCtrl ToolButton where ; getCtrl = getToolButton
 
 
 data TextView = TextView {
@@ -136,10 +152,8 @@ data TextView = TextView {
     }
 
 
-getTextView :: Window -> String -> IO TextView
-getTextView window ctrl = do
-    txt <- xmlGetWidget (xml window) castToTextView ctrl
-    liftTextView txt
+getTextView :: Window -> String -> TextView
+getTextView window ctrl = getAWidget (\(ATextView x) -> x) window ctrl
 
 liftTextView :: Gtk.TextView -> IO TextView
 liftTextView txt = do
@@ -178,10 +192,8 @@ data StatusBar = StatusBar {
     context :: CUInt, statusbarValue :: IORef String
     }
 
-getStatusBar :: Window -> String -> IO StatusBar
-getStatusBar window ctrl = do
-    sb <- xmlGetWidget (xml window) (castToStatusbar) ctrl
-    liftStatusBar sb
+getStatusBar :: Window -> String -> StatusBar
+getStatusBar window ctrl = getAWidget (\(AStatusBar x) -> x) window ctrl
 
 liftStatusBar :: Gtk.Statusbar -> IO StatusBar
 liftStatusBar sb = do
@@ -207,10 +219,8 @@ data ToolButton = ToolButton {
     }
 
 
-getToolButton :: Window -> String -> IO ToolButton
-getToolButton window ctrl = do
-    tb <- xmlGetWidget (xml window) (castToToolButton) ctrl
-    liftToolButton tb
+getToolButton :: Window -> String -> ToolButton
+getToolButton window ctrl = getAWidget (\(AToolButton x) -> x) window ctrl
 
 liftToolButton :: Gtk.ToolButton -> IO ToolButton
 liftToolButton tb = do
