@@ -4,12 +4,15 @@ module PropLang.Gtk(
     text, enabled, onClicked,
     initPropLang, mainPropLang,
     Window, getWindow, showWindow, showWindowMain,
-    TextView, getTextView,
+    TextView, getTextView, getTextViewRaw,
+    textviewBuffer,
     StatusBar, getStatusBar,
     ToolButton, getToolButton,
     TextEntry, getTextEntry,
     getCtrl,
-    appendText
+    
+    -- hacks!
+    onEnterKey
     ) where
 
 import qualified Graphics.UI.Gtk as Gtk
@@ -159,6 +162,14 @@ data TextView = TextView {
     }
 
 
+textviewBuffer :: TextView -> IO TextBuffer
+textviewBuffer txt = textViewGetBuffer (textview txt)
+
+
+getTextViewRaw :: TextView -> Gtk.TextView
+getTextViewRaw txt = textview txt
+
+
 getTextView :: Window -> String -> TextView
 getTextView window ctrl = getAWidget (\(ATextView x) -> x) window ctrl
 
@@ -178,13 +189,6 @@ liftTextView txt = do
             strt <- textBufferGetStartIter buf
             end <- textBufferGetEndIter buf
             textBufferGetText buf strt end False
-
-
-appendText :: TextView -> String -> IO ()
-appendText txt x = do
-    buf <- textViewGetBuffer txt
-    end <- textBufferGetEndIter buf
-    textBufferInsert end x
 
 
 
@@ -299,6 +303,19 @@ getWidgetMaybe cast o =
         (return $! Just $! cast o)
         (\e -> return Nothing)
 
+
+
+
+-- short term hack
+onEnterKey :: TextView -> IO () -> IO ()
+onEnterKey txt act = do
+        onKeyPress (textview txt) handle
+        return ()
+    where
+        handle x = do
+            case x of
+                Key{eventKeyName = "Return"} -> act >> return True
+                _ -> return False
 
     
     {-
