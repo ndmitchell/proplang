@@ -7,7 +7,9 @@ module PropLang.Gtk(
     TextView, getTextView,
     StatusBar, getStatusBar,
     ToolButton, getToolButton,
-    getCtrl
+    TextEntry, getTextEntry,
+    getCtrl,
+    appendText
     ) where
 
 import qualified Graphics.UI.Gtk as Gtk
@@ -46,6 +48,7 @@ class TextProvider a where; text :: a -> Var String
 instance TextProvider Window where; text = windowText
 instance TextProvider TextView where; text = textviewText
 instance TextProvider StatusBar where; text = statusbarText
+instance TextProvider TextEntry where; text = textentryText
 
 class EnabledProvider a where; enabled :: a -> Var Bool
 instance EnabledProvider TextView where; enabled = textviewEnabled
@@ -74,6 +77,7 @@ gtkPropEvent name reg set get = newVarWithName name f
 -- Window
 
 data AWidget = ATextView TextView
+             | ATextEntry TextEntry
              | AStatusBar StatusBar
              | AToolButton ToolButton
              | AUnknown
@@ -119,12 +123,14 @@ showWindow wnd = widgetShowAll $ window wnd
 liftWidget :: Widget -> IO AWidget
 liftWidget x = do
     tv <- getWidgetMaybe castToTextView x
+    te <- getWidgetMaybe castToEntry x
     sb <- getWidgetMaybe castToStatusbar x
     tb <- getWidgetMaybe castToToolButton x
     case () of
         _ | isJust tv -> f ATextView liftTextView tv
         _ | isJust sb -> f AStatusBar liftStatusBar sb
         _ | isJust tb -> f AToolButton liftToolButton tb
+        _ | isJust te -> f ATextEntry liftTextEntry te
         _ -> return AUnknown
     where
         f wrap conv (Just x) = do
@@ -144,6 +150,7 @@ class GetCtrl a where
 instance GetCtrl TextView where ; getCtrl = getTextView
 instance GetCtrl StatusBar where ; getCtrl = getStatusBar
 instance GetCtrl ToolButton where ; getCtrl = getToolButton
+instance GetCtrl TextEntry where ; getCtrl = getTextEntry
 
 
 data TextView = TextView {
@@ -171,6 +178,33 @@ liftTextView txt = do
             strt <- textBufferGetStartIter buf
             end <- textBufferGetEndIter buf
             textBufferGetText buf strt end False
+
+
+appendText :: TextView -> String -> IO ()
+appendText txt x = do
+    buf <- textViewGetBuffer txt
+    end <- textBufferGetEndIter buf
+    textBufferInsert end x
+
+
+
+data TextEntry = TextEntry {
+    textentry :: Gtk.Entry,
+    textentryText :: Var String
+    }
+
+
+getTextEntry :: Window -> String -> TextEntry
+getTextEntry window ctrl = getAWidget (\(ATextEntry x) -> x) window ctrl
+
+liftTextEntry :: Gtk.Entry -> IO TextEntry
+liftTextEntry txt = do
+    name <- widgetGetName txt
+    textentryText <- gtkProp ("gtk.textentry.text[" ++ name ++ "]")
+                                  -- (afterInsertAtCursor txt)
+                                  (entrySetText txt)
+                                  (entryGetText txt)
+    return $ TextEntry txt textentryText
 
 
 widgetGetSensitivity :: WidgetClass self => self -> IO Bool
