@@ -29,11 +29,17 @@ import Data.Maybe
 import Data.List
 import Foreign.C.Types
 import Control.Exception
+import Control.Concurrent
 
 
 -- Initialisation stuff from GTK
 
-initPropLang = initGUI
+initPropLang = do if rtsSupportsBoundThreads
+                      then error "Don't link with -theaded, Gtk won't work"
+                      else do
+                             initGUI
+                             timeoutAddFull (yield >> return True) priorityDefaultIdle 50
+                             
 mainPropLang = mainGUI
 
 showWindowMain wnd = do
