@@ -29,13 +29,15 @@ data Gui = Gui {
 main = do
     initPropLang
     window <- getWindow "sample.glade" "wndMain"
-    txt <- return $ getTextView window "txt"
-    sb <- return $ getStatusBar window "sb"
-    new <- return $ getToolButton window "tbNew"
-    open <- return $ getToolButton window "tbOpen"
-    save <- return $ getToolButton window "tbSave"
-    saveas <- return $ getToolButton window "tbSaveAs"
-    close <- return $ getToolButton window "tbClose"
+    
+    let f x = getCtrl window x
+        txt = f "txt"
+        sb = f "sb"
+        new = f "tbNew"
+        open = f "tbOpen"
+        save = f "tbSave"
+        saveas = f "tbSaveAs"
+        close = f "tbClose"
     
     e <- newEventName "Sample.test"
     e += putStrLn "event fired"
