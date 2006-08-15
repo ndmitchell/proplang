@@ -3,7 +3,7 @@ module PropLang.Variable(
     Var, newVar, newVarName, newVarWith, newVarWithName,
     getVar,
     with, with1, with2, with3,
-    (-<), (=<), (=<=)
+    (-<), (-<-), (=<), (=<=)
     ) where
 
 import PropLang.Event
@@ -11,7 +11,7 @@ import PropLang.Value
 import Data.IORef
 import Monad
 
-infixr 1  =<, -<, =<=
+infixr 1  =<, -<, =<=, -<-
 
 
 
@@ -48,6 +48,10 @@ instance Eventer (Var a) where
     writeIORef source []
     (valSet val) x
 
+(-<-) :: Var a -> Var a -> IO ()
+(-<-) varto varfrom = do
+    val <- getVar varfrom
+    varto -< val
 
 (=<=) :: Var a -> Var a -> IO ()
 var1 =<= var2 = var1 =< with1 var2 id
