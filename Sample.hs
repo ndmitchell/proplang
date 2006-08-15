@@ -89,14 +89,14 @@ main = do
 
 
 newDocument :: Gui -> IO ()
-newDocument gui@Gui{document=document, modified=modified} = do
+newDocument gui@Gui{document=document} = do
     b <- shutDocument gui
     when b $ do
         document -< True
 
 
 saveDocument :: Gui -> IO ()
-saveDocument gui@Gui{filename=filename, modified=modified} = do
+saveDocument gui@Gui{filename=filename} = do
     return ()
 
 
@@ -107,7 +107,6 @@ saveAsDocument gui@Gui{lasttxt=lasttxt, txt=txt} = do
 
 closeDocument :: Gui -> IO ()
 closeDocument gui@Gui{modified=modified} = do
-    modified -< False
     shutDocument gui
     return ()
 
@@ -120,16 +119,16 @@ openDocument gui = return () -- do
 -- return True if the document was shut
 -- False if the user cancelled, i.e. want to save it
 shutDocument :: Gui -> IO Bool
-shutDocument gui@Gui{modified=modified, txt=txt, filename=filename, document=document} = do
+shutDocument gui@Gui{modified=modified, txt=txt, lasttxt=lasttxt, filename=filename, document=document} = do
     moded <- getVar modified
     if moded then do
         promptSave gui
         return False
      else do
         txt!text -< ""
+        lasttxt  -< ""
         filename -< Nothing
         document -< False
-        modified -< False
         return True
 
 
