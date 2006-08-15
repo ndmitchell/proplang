@@ -21,7 +21,8 @@ data Gui = Gui {
     
     document :: Var Bool,
     modified :: Var Bool,
-    filename :: Var (Maybe String)
+    filename :: Var (Maybe String),
+    lasttxt  :: Var String
     }
 
 
@@ -46,6 +47,9 @@ main = do
     -- is a document open
     document <- newVar False
     
+    -- the last saved text
+    lasttxt <- newVar ""
+
     -- is a document modified
     modified <- newVar False
     
@@ -54,7 +58,8 @@ main = do
     
     let gui = Gui{window=window, sb=sb, txt=txt,
                   new=new, open=open, save=save, saveas=saveas, close=close,
-                  document=document, modified=modified, filename=filename}
+                  document=document, modified=modified, filename=filename,
+		  lasttxt=lasttxt}
     
     txt!enabled =<= document
     new!enabled =< with1 document not 
@@ -69,7 +74,7 @@ main = do
     close!onClicked += closeDocument gui
     open!onClicked += openDocument gui
     
-    txt!text += (modified -< True)
+    modified =< with2 (txt!text) (lasttxt) (/=)
     
     window!text =< with3 document modified filename (\d m f -> 
         "TextEditor" ++
@@ -96,8 +101,8 @@ saveDocument gui@Gui{filename=filename, modified=modified} = do
 
 
 saveAsDocument :: Gui -> IO ()
-saveAsDocument gui@Gui{modified=modified} = do
-    modified -< False
+saveAsDocument gui@Gui{lasttxt=lasttxt, txt=txt} = do
+    lasttxt -<- txt!text
 
 
 closeDocument :: Gui -> IO ()
