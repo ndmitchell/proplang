@@ -11,7 +11,7 @@ import Graphics.UI.Gtk.Windows.Dialog
 
 data Gui = Gui {
     window :: Window,
-    txt :: TextBox,
+    txt :: TextView,
     sb :: StatusBar,
     new :: ToolButton,
     open :: ToolButton,
@@ -29,13 +29,13 @@ data Gui = Gui {
 main = do
     initPropLang
     window <- getWindow "sample.glade" "wndMain"
-    txt <- getTextBox window "txt"
-    sb <- getStatusBar window "sb"
-    new <- getToolButton window "tbNew"
-    open <- getToolButton window "tbOpen"
-    save <- getToolButton window "tbSave"
-    saveas <- getToolButton window "tbSaveAs"
-    close <- getToolButton window "tbClose"
+    txt <- return $ getTextView window "txt"
+    sb <- return $ getStatusBar window "sb"
+    new <- return $ getToolButton window "tbNew"
+    open <- return $ getToolButton window "tbOpen"
+    save <- return $ getToolButton window "tbSave"
+    saveas <- return $ getToolButton window "tbSaveAs"
+    close <- return $ getToolButton window "tbClose"
     
     e <- newEventName "Sample.test"
     e += putStrLn "event fired"
