@@ -3,7 +3,7 @@ module PropLang.Gtk(
     (!),
     text, enabled, onClicked,
     initPropLang, mainPropLang,
-    Window, getWindow, showWindow, showWindowMain,
+    Window, getWindow, showWindow, showWindowMain, getGtkWindow,
     TextView, getTextView, getTextViewRaw,
     textviewBuffer,
     StatusBar, getStatusBar,
@@ -98,6 +98,9 @@ data Window = Window {
     windowText :: Var String
     }
 
+-- Hack, I guess.
+getGtkWindow :: Window -> Gtk.Window
+getGtkWindow = window
 
 getWindow :: FilePath -> String -> IO Window
 getWindow file name = do
