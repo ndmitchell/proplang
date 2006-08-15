@@ -98,6 +98,12 @@ newDocument gui@Gui{document=document} = do
     when b $ do
         document -< True
 
+readFromFile :: Gui -> String -> IO ()
+readFromFile gui@Gui{lasttxt=lasttxt, txt=txt} filename = do
+    content <- readFile filename
+    (txt!text) -< content
+    lasttxt    -< content
+
 saveToFile :: Gui -> String -> IO ()
 saveToFile gui@Gui{lasttxt=lasttxt, txt=txt} filename = do
     text <- getVar (txt!text)
@@ -132,22 +138,44 @@ saveAsDocument gui@Gui{filename=filename} = do
     widgetDestroy dlg
 
 closeDocument :: Gui -> IO ()
-closeDocument gui@Gui{modified=modified} = do
+closeDocument gui = do
     shutDocument gui
     return ()
 
 
 openDocument :: Gui -> IO ()
-openDocument gui = return () -- do
-    
+openDocument gui = do
+    b <- shutDocument gui 
+    if b then do
+        fname <- getVar (filename gui)
+        dlg <- fileChooserDialogNew
+                (Just "Open Document")
+                (Just  $ getGtkWindow $ window gui)
+                FileChooserActionOpen
+                [ ("Open",ResponseOk) , ("Cancel",ResponseCancel) ]
+        case fname of
+            Nothing -> return ()
+            Just fn -> fileChooserSetCurrentName dlg fn
+        res <- dialogRun dlg
+        case res of
+            ResponseOk     -> do Just fn <- fileChooserGetFilename dlg -- needs error checking
+                                 (filename gui) -< Just fn
+                                 readFromFile gui fn
+                                 (document gui) -< True
+            ResponseCancel -> return ()
+        widgetDestroy dlg
+      else return ()
 
 
 -- return True if the document was shut
 -- False if the user cancelled, i.e. want to save it
 shutDocument :: Gui -> IO Bool
 shutDocument gui@Gui{modified=modified, txt=txt, lasttxt=lasttxt, filename=filename, document=document} = do
+    doc <- getVar document
     moded <- getVar modified
-    ok <- if moded then promptSave gui else return True
+    ok <- if doc then
+             if moded then promptSave gui else return True
+          else return True
     if ok then do
         txt!text -< ""
         lasttxt  -< ""
