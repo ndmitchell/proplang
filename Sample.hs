@@ -125,7 +125,7 @@ saveAsDocument gui@Gui{filename=filename} = do
     fname <- getVar filename
     dlg <- fileChooserDialogNew
             (Just "Save Document")
-            (Just  $ getGtkWindow $ window gui)
+            (Just  $ getWindowRaw $ window gui)
             FileChooserActionSave
             [ ("Save",ResponseOk) , ("Cancel",ResponseCancel) ]
     case fname of
@@ -152,7 +152,7 @@ openDocument gui = do
         fname <- getVar (filename gui)
         dlg <- fileChooserDialogNew
                 (Just "Open Document")
-                (Just  $ getGtkWindow $ window gui)
+                (Just  $ getWindowRaw $ window gui)
                 FileChooserActionOpen
                 [ ("Open",ResponseOk) , ("Cancel",ResponseCancel) ]
         case fname of
