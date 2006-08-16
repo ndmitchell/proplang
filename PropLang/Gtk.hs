@@ -27,6 +27,7 @@ import PropLang.Event
 import Data.IORef
 import Data.Maybe
 import Data.List
+import Maybe
 import Foreign.C.Types
 import Control.Exception
 import Control.Concurrent
@@ -116,14 +117,14 @@ getWindow file name = do
                               
         children <- getChildWindowsAll $ toWidget wnd
         c2 <- mapM f children
-        return $ Window dialogXml wnd (concat c2) windowText
+        return $ Window dialogXml wnd (catMaybes c2) windowText
     where
         f w = do
             name <- widgetGetName w
             if "Gtk" `isPrefixOf` name
-                then return []
+                then return Nothing
                 else do x <- liftWidget w
-                        return [(name,x)]
+                        return $ Just (name,x)
                 
 
 
@@ -371,3 +372,4 @@ varFromEntryText entry = do
     onInsertAtCursor entry (const $ fireNotify var)
     return var
 -}
+
