@@ -17,14 +17,7 @@ import Graphics.UI.Gtk.Selectors.FileChooserDialog
 data Gui = Gui {
     window :: Window,
     txt :: TextView,
-    sb :: StatusBar,
-    new :: ToolButton,
-    open :: ToolButton,
-    save :: ToolButton,
-    saveas :: ToolButton,
-    close :: ToolButton,
-    revert :: ToolButton,
-    
+
     document :: Var Bool,
     modified :: Var Bool,
     filename :: Var (Maybe String),
@@ -39,12 +32,19 @@ main = do
     
     let f x = getCtrl window x
         txt = f "txt"
+        sb :: StatusBar
         sb = f "sb"
+        new :: ToolButton
         new = f "tbNew"
+        open :: ToolButton
         open = f "tbOpen"
         save = f "tbSave"
+        save :: ToolButton
+        saveas :: ToolButton
         saveas = f "tbSaveAs"
+        close :: ToolButton
         close = f "tbClose"
+        revert :: ToolButton
         revert = f "tbRevert"
     
     e <- newEventName "Sample.test"
@@ -63,10 +63,8 @@ main = do
     -- the filename of the document, if its been saved
     filename <- newVar Nothing
     
-    let gui = Gui{window=window, sb=sb, txt=txt,
-                  new=new, open=open, save=save, saveas=saveas, close=close, revert=revert,
-                  document=document, modified=modified, filename=filename,
-          lasttxt=lasttxt}
+    let gui = Gui{window=window, txt=txt,
+                  document=document, modified=modified, filename=filename, lasttxt=lasttxt}
     
     txt!enabled =<= document
     new!enabled =< with1 document not 
