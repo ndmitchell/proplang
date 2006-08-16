@@ -23,6 +23,7 @@ data Gui = Gui {
     save :: ToolButton,
     saveas :: ToolButton,
     close :: ToolButton,
+    revert :: ToolButton,
     
     document :: Var Bool,
     modified :: Var Bool,
@@ -44,6 +45,7 @@ main = do
         save = f "tbSave"
         saveas = f "tbSaveAs"
         close = f "tbClose"
+        revert = f "tbRevert"
     
     e <- newEventName "Sample.test"
     e += putStrLn "event fired"
@@ -62,21 +64,23 @@ main = do
     filename <- newVar Nothing
     
     let gui = Gui{window=window, sb=sb, txt=txt,
-                  new=new, open=open, save=save, saveas=saveas, close=close,
+                  new=new, open=open, save=save, saveas=saveas, close=close, revert=revert,
                   document=document, modified=modified, filename=filename,
           lasttxt=lasttxt}
     
     txt!enabled =<= document
     new!enabled =< with1 document not 
-    close!enabled =<= document
     saveas!enabled =< with2 document modified (&&)
     save!enabled =< with2 document modified (&&)
+    close!enabled =<= document
+    revert!enabled =<= modified
     
     new!onClicked += newDocument gui
     save!onClicked += saveDocument gui
     saveas!onClicked += saveAsDocument gui
     close!onClicked += closeDocument gui
     open!onClicked += openDocument gui
+    revert!onClicked += (txt!text -<- lasttxt)
     
     modified =< with2 (txt!text) (lasttxt) (/=)
     

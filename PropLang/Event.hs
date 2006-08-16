@@ -59,3 +59,4 @@ raise e = do
     xs2 <- readIORef xs
     debug $ "Raising event, " ++ show (length xs2) ++ ": " ++ name
     mapM_ snd xs2
+
