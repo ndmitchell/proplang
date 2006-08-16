@@ -49,9 +49,7 @@ instance Eventer (Var a) where
     (valSet val) x
 
 (-<-) :: Var a -> Var a -> IO ()
-(-<-) varto varfrom = do
-    val <- getVar varfrom
-    varto -< val
+(-<-) varto varfrom = getVar varfrom >>= (varto -<)
 
 (=<=) :: Var a -> Var a -> IO ()
 var1 =<= var2 = var1 =< with1 var2 id
