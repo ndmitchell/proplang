@@ -18,10 +18,10 @@ infixr 1  =<, -<, =<=, -<-
 data Var a = Var (Value a) Event (IORef [EventHandle])
 
 
-newVar :: a -> IO (Var a)
+newVar :: (Eq a) => a -> IO (Var a)
 newVar x = newVarName "" x
 
-newVarName :: String -> a -> IO (Var a)
+newVarName :: (Eq a) => String -> a -> IO (Var a)
 newVarName name x = newVarWithName name (`newValueIORef` x) 
 
 newVarWith :: (Event -> IO (Value a)) -> IO (Var a)

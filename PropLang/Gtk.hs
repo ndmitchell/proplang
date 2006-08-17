@@ -76,13 +76,12 @@ gtkProp name set get = newVarWithName name f
         set2 e x = do set x
                       raise e
 
-gtkPropEvent :: String -> (IO () -> IO any_) -> (s -> IO ()) -> (IO s) -> IO (Var s)
+gtkPropEvent :: (Eq s) => String -> (IO () -> IO any_) -> (s -> IO ()) -> (IO s) -> IO (Var s)
 gtkPropEvent name reg set get = newVarWithName name f
     where
         f e = do reg (raise e)
-                 return $ Value (set2 e) get
-        set2 e x = do set x
-                      raise e
+                 return $ Value set get
+    -- we do not raise on set, as gtk does that anyway (tested with Entry)
 
 -- Window
 
