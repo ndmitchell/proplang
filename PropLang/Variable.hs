@@ -45,9 +45,9 @@ instance Eventer (Var a) where
 
 
 (-<) :: Var a -> a -> IO ()
-(-<) (Var val evt source) x = do
+(-<) (Var val _ source) x = do
     writeIORef source []
-    (valSet val) x
+    valSet val x
 
 (-<-) :: Var a -> Var a -> IO ()
 (-<-) varto varfrom = getVar varfrom >>= (varto -<)
@@ -101,8 +101,7 @@ withN events f (Var valTo _ source) = do
     writeIORef source es
     g
     where
-        g = do x <- f
-               (valSet valTo) x
+        g = f >>= valSet valTo
 
 
 (=<) :: Var a -> (Var a -> IO ()) -> IO ()
