@@ -89,5 +89,5 @@ withN events f (Var valTo _ source) = do
 
 
 (=<) :: Var a -> (Var a -> IO ()) -> IO ()
-(=<) var f = f var
+var =< f   = f var
 
