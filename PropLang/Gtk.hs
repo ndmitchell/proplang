@@ -214,8 +214,8 @@ getTextEntry window ctrl = getAWidget (\(ATextEntry x) -> x) window ctrl
 liftTextEntry :: Gtk.Entry -> IO TextEntry
 liftTextEntry txt = do
     name <- widgetGetName txt
-    textentryText <- gtkProp ("gtk.textentry.text[" ++ name ++ "]")
-                                  -- (afterInsertAtCursor txt)
+    textentryText <- gtkPropEvent ("gtk.textentry.text[" ++ name ++ "]")
+                                  (onEditableChanged txt)
                                   (entrySetText txt)
                                   (entryGetText txt)
     return $ TextEntry txt textentryText
