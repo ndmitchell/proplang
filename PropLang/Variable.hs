@@ -3,7 +3,8 @@ module PropLang.Variable(
     Var, newVar, newVarName, newVarWith, newVarWithName,
     getVar,
     with, with1, with2, with3,
-    (-<), (-<-), (=<), (=<=)
+    (-<), (-<-), (=<), (=<=), (=<>=),
+    tie
     ) where
 
 import PropLang.Event
@@ -11,7 +12,7 @@ import PropLang.Value
 import Data.IORef
 import Monad
 
-infixr 1  =<, -<, =<=, -<-
+infixr 1  =<, -<, =<=, -<-, =<>=
 
 
 
@@ -54,6 +55,22 @@ instance Eventer (Var a) where
 (=<=) :: Var a -> Var a -> IO ()
 var1 =<= var2 = var1 =< with1 var2 id
 
+
+
+tie :: Var a -> Var b -> (a->b) -> (b->a) ->  IO ()
+tie var1@(Var val1 _ _) var2@(Var val2 _ _) f12 f21 = do
+        -- I tried something sophisticated to avoid loops, but 
+	-- it did not work out. This will of course only work if 
+	-- the Variables don't fire if they are set to what they are
+	-- set already...
+	-- Note that I'm not using =<=, not not override the sources
+	var1 += (getVar var1 >>= (valSet val2).f12)
+	var2 += (getVar var2 >>= (valSet val1).f21)
+	return ()
+
+        
+(=<>=) :: Var a -> Var a -> IO ()
+var1 =<>= var2 = tie var1 var2 id id
 
 with = with1
 
