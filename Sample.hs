@@ -38,8 +38,8 @@ main = do
         new = f "tbNew"
         open :: ToolButton
         open = f "tbOpen"
-        save = f "tbSave"
         save :: ToolButton
+        save = f "tbSave"
         saveas :: ToolButton
         saveas = f "tbSaveAs"
         close :: ToolButton
