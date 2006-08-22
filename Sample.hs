@@ -69,7 +69,8 @@ main = do
     txt!enabled =<= document
     new!enabled =< with1 document not 
     saveas!enabled =< with2 document modified (&&)
-    save!enabled =< with2 document modified (&&)
+    --save!enabled =< with2 document modified (&&)
+    save!enabled =< (&&) =$$= document =$= modified
     close!enabled =<= document
     revert!enabled =<= modified
     
@@ -81,15 +82,14 @@ main = do
     revert!onClicked += (txt!text -<- lasttxt)
     
     modified =< with2 (txt!text) (lasttxt) (/=)
-    
-    window!text =< with3 document modified filename (\d m f -> 
-        "TextEditor" ++
-        (if d then " - " ++ maybe "<untitled>" id f else "") ++
-        (if m then " *" else "")
-        )
-    
-    sb!text =< with1 (txt!text) (\x ->
-        "Word count: " ++ show (length $ words x))
+   
+    let titleformat d m f = "TextEditor" ++
+                            (if d then " - " ++ maybe "<untitled>" id f else "") ++
+                            (if m then " *" else "")
+
+    window!text =< titleformat =$$= document =$= modified =$=  filename    
+
+    sb!text =< (\x -> "Word count: " ++ show (length $ words x)) =$$= txt!text
 
     showWindowMain window
 
