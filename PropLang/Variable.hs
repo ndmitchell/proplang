@@ -3,7 +3,8 @@ module PropLang.Variable(
     Var, newVar, newVarName, newVarWith, newVarWithName,
     getVar,
     with, with1, with2, with3,
-    (-<), (-<-), (=<), (=<=), (=<>=),
+    (=<), (=$=), (=$$=),
+    (-<), (-<-), (=<=), (=<>=),
     tie
     ) where
 
@@ -12,7 +13,10 @@ import PropLang.Value
 import Data.IORef
 import Monad
 
-infixr 1  =<, -<, =<=, -<-, =<>=
+infixr 1  -<, =<=, -<-, =<>=
+infixl 8 =$=, =$$=
+infixl 7 =<
+
 
 
 
@@ -74,27 +78,17 @@ var1 =<>= var2 = tie var1 var2 id id
 
 with = with1
 
-with1 :: Var a -> (a -> x) -> Var x -> IO ()
-with1 varFrom1 f var =
-        withN [event varFrom1] g var
-    where
-        g = liftM f $ getVar varFrom1
+with1 :: Var a -> (a -> x) -> ([Event], IO x)
+with1 varFrom1 f = f =$$= varFrom1
 
-with2 :: Var a -> Var b -> (a -> b -> x) -> Var x -> IO ()
-with2 varFrom1 varFrom2 f var =
-        withN [event varFrom1, event varFrom2] g var
-    where
-        g = liftM2 f (getVar varFrom1) (getVar varFrom2) 
+with2 :: Var a -> Var a1 -> (a -> a1 -> x) -> ([Event], IO x)
+with2 var1 var2 f = f =$$= var1 =$= var2
 
-with3 :: Var a -> Var b -> Var c -> (a -> b -> c -> x) -> Var x -> IO ()
-with3 varFrom1 varFrom2 varFrom3 f var =
-        withN [event varFrom1, event varFrom2, event varFrom3] g var
-    where
-        g = liftM3 f (getVar varFrom1) (getVar varFrom2) (getVar varFrom3)
+with3 :: Var a -> Var a1 -> Var a2 -> (a -> a1 -> a2 -> x) -> ([Event], IO x)
+with3 var1 var2 var3 f = f =$$= var1 =$= var2 =$= var3
 
-
-withN :: [Event] -> IO x -> Var x -> IO ()
-withN events f (Var valTo _ source) = do
+(=<) :: Var x -> ([Event], IO x) -> IO ()
+(Var valTo _ source) =< (events,f) = do
     srcOld <- readIORef source
     mapM_ remove srcOld
     es <- mapM (+= g) events
@@ -103,7 +97,11 @@ withN events f (Var valTo _ source) = do
     where
         g = f >>= valSet valTo
 
+-- First parameter
+(=$$=) :: (a->x) -> Var a -> ([Event], IO x)
+f =$$= x = ([], return f) =$= x
 
-(=<) :: Var a -> (Var a -> IO ()) -> IO ()
-var =< f   = f var
+-- Other parameters
+(=$=) :: ([Event], IO (a -> x)) -> Var a -> ([Event], IO x)
+(e,f) =$= v = (event v : e, f `ap` (getVar v))
 

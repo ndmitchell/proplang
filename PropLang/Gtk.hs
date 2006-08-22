@@ -51,6 +51,8 @@ showWindowMain wnd = do
 
 -- Property stuff
 
+infixl 9 !
+
 (!) :: a -> (a -> b) -> b
 object ! prop = prop object
 
