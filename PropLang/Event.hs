@@ -2,10 +2,12 @@
 module PropLang.Event(
     Eventer(..), Event, newEvent, newEventName,
     EventHandle, (+=), remove,
-    raise
+    raise,
+    blockEvent, unblockEvent
     ) where
 
 import Data.IORef
+import Monad
 
 debug = putStrLn
 
@@ -18,6 +20,7 @@ instance Eventer Event where
 
 data Event = Event
                 String
+		(IORef Bool)
                 (IORef Integer)
                 (IORef [(Integer, IO ())])
 
@@ -30,14 +33,15 @@ newEvent = newEventName ""
 newEventName :: String -> IO Event
 newEventName name = do
     debug $ "Creating event: " ++ name
+    a <- newIORef True
     n <- newIORef 0
     xs <- newIORef []
-    return $ Event name n xs
+    return $ Event name a n xs
 
 
 (+=) :: Eventer a => a -> IO () -> IO EventHandle
 (+=) e x = do
-    let Event name n xs = event e
+    let Event name a n xs = event e
     n2 <- readIORef n
     writeIORef n (n2+1)
     xs2 <- readIORef xs
@@ -47,7 +51,7 @@ newEventName name = do
 
 remove :: EventHandle -> IO ()
 remove (EventHandle e x) = do
-    let Event name n xs = event e
+    let Event name a n xs = event e
     xs2 <- readIORef xs
     writeIORef xs [(a,b) | (a,b) <- xs2, a /= x]
     debug $ "Removed from event, now at " ++ show (length xs2-1) ++ ": " ++ name
@@ -55,8 +59,18 @@ remove (EventHandle e x) = do
 
 raise :: Eventer a => a -> IO ()
 raise e = do
-    let Event name n xs = event e
-    xs2 <- readIORef xs
-    debug $ "Raising event, " ++ show (length xs2) ++ ": " ++ name
-    mapM_ snd xs2
+    let Event name a n xs = event e
+    active <- readIORef a
+    if active then do
+      xs2 <- readIORef xs
+      debug $ "Raising event, " ++ show (length xs2) ++ ": " ++ name
+      mapM_ snd xs2
+     else 
+      debug $ "Not rasing disabled event: " ++ name
 
+
+blockEvent :: Event -> IO ()
+blockEvent (Event _ a _ _) = writeIORef a False
+
+unblockEvent :: Event -> IO ()
+unblockEvent (Event _ a _ _) = writeIORef a True

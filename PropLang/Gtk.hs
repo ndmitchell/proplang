@@ -31,7 +31,9 @@ import Maybe
 import Foreign.C.Types
 import Control.Exception
 import Control.Concurrent
+import Monad
 
+debug = putStrLn
 
 -- Initialisation stuff from GTK
 
@@ -78,11 +80,20 @@ gtkProp name set get = newVarWithName name f
         set2 e x = do set x
                       raise e
 
-gtkPropEvent :: (Eq s) => String -> (IO () -> IO any_) -> (s -> IO ()) -> (IO s) -> IO (Var s)
+gtkPropEvent ::  String -> (IO () -> IO any_) -> (String -> IO ()) -> (IO String) -> IO (Var String)
 gtkPropEvent name reg set get = newVarWithName name f
     where
         f e = do reg (raise e)
-                 return $ Value set get
+                 return $ Value set' get'
+              where set' s = do old <- get
+	                        debug $ name++": want to change "++(show old)++" to "++(show s)
+ 				if old /= s then do
+					blockEvent e
+					set ""
+					unblockEvent e
+					set s
+				 else debug "(not happening)"
+	            get'   = do s <- get; debug (name++": Getting "++(show s)); return s
     -- we do not raise on set, as gtk does that anyway (tested with Entry)
 
 -- Window
@@ -216,7 +227,7 @@ liftTextEntry :: Gtk.Entry -> IO TextEntry
 liftTextEntry txt = do
     name <- widgetGetName txt
     textentryText <- gtkPropEvent ("gtk.textentry.text[" ++ name ++ "]")
-                                  (onEditableChanged txt)
+                                  (afterEditableChanged txt)
                                   (entrySetText txt)
                                   (entryGetText txt)
     return $ TextEntry txt textentryText
