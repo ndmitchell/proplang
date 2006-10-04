@@ -68,8 +68,8 @@ tie var1@(Var val1 _ _) var2@(Var val2 _ _) f12 f21 = do
 	-- the Variables don't fire if they are set to what they are
 	-- set already...
 	-- Note that I'm not using =<=, not not override the sources
-	var1 += (getVar var1 >>= (valSet val2).f12)
-	var2 += (getVar var2 >>= (valSet val1).f21)
+	var1 += (valSet val2 .f12 =<< getVar var1 )
+	var2 += (valSet val1 .f21 =<< getVar var2 )
 	return ()
 
         
