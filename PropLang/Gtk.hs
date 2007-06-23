@@ -1,9 +1,10 @@
 
 module PropLang.Gtk(
     (!),
-    text, enabled, onClicked,
+    text, enabled, onClicked, onActivated,
     initPropLang, mainPropLang,
     Window, getWindow, showWindow, showWindowMain, getWindowRaw,
+    MenuItem, getMenuItem,
     TextView, getTextView, getTextViewRaw,
     textviewBuffer,
     StatusBar, getStatusBar,
@@ -16,7 +17,7 @@ module PropLang.Gtk(
     ) where
 
 import qualified Graphics.UI.Gtk as Gtk
-import Graphics.UI.Gtk hiding (Action, Window, TextView, ToolButton, Event, onClicked)
+import Graphics.UI.Gtk hiding (Action, Window, MenuItem, TextView, ToolButton, Event, onClicked)
 import Graphics.UI.Gtk.Glade
 import System.Glib
 
@@ -71,6 +72,9 @@ instance EnabledProvider ToolButton where; enabled = toolbuttonEnabled
 class OnClickedProvider a where; onClicked :: a -> Event
 instance OnClickedProvider ToolButton where; onClicked = toolbuttonOnClicked
 
+class OnActivatedProvider a where; onActivated :: a -> Event
+instance OnActivatedProvider MenuItem where; onActivated = menuitemOnActivated
+
 -- Helper stuff
 
 gtkProp :: String -> (s -> IO ()) -> (IO s) -> IO (Var s)
@@ -98,7 +102,8 @@ gtkPropEvent name reg set get = newVarWithName name f
 
 -- Window
 
-data AWidget = ATextView TextView
+data AWidget = AMenuItem MenuItem
+	     | ATextView TextView
              | ATextEntry TextEntry
              | AStatusBar StatusBar
              | AToolButton ToolButton
@@ -147,11 +152,13 @@ showWindow wnd = widgetShowAll $ window wnd
 
 liftWidget :: Widget -> IO AWidget
 liftWidget x = do
+    mi <- getWidgetMaybe castToMenuItem x
     tv <- getWidgetMaybe castToTextView x
     te <- getWidgetMaybe castToEntry x
     sb <- getWidgetMaybe castToStatusbar x
     tb <- getWidgetMaybe castToToolButton x
     case () of
+        _ | isJust mi -> f AMenuItem liftMenuItem mi
         _ | isJust tv -> f ATextView liftTextView tv
         _ | isJust sb -> f AStatusBar liftStatusBar sb
         _ | isJust tb -> f AToolButton liftToolButton tb
@@ -172,10 +179,27 @@ getAWidget f wnd name = case lookup name (children wnd) of
 class GetCtrl a where
     getCtrl :: Window -> String -> a
 
+instance GetCtrl MenuItem where ; getCtrl = getMenuItem
 instance GetCtrl TextView where ; getCtrl = getTextView
 instance GetCtrl StatusBar where ; getCtrl = getStatusBar
 instance GetCtrl ToolButton where ; getCtrl = getToolButton
 instance GetCtrl TextEntry where ; getCtrl = getTextEntry
+
+
+data MenuItem = MenuItem {
+    menuItem :: Gtk.MenuItem,
+    menuitemOnActivated :: Event
+    }
+
+getMenuItem :: Window -> String -> MenuItem
+getMenuItem window ctrl = getAWidget (\(AMenuItem x) -> x) window ctrl
+
+liftMenuItem :: Gtk.MenuItem -> IO MenuItem
+liftMenuItem mi = do
+    name <- widgetGetName mi
+    miActivated <- newEventName $ "gtk.menuitem.activated [" ++ name ++ "]"
+    mi `onActivateLeaf` raise miActivated
+    return $ MenuItem mi miActivated
 
 
 data TextView = TextView {
