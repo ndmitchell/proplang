@@ -1,0 +1,10 @@
+Name:			proplang
+Synopsis:		A library for more functional GUI development
+Version:		0.0
+License:		BSD3
+Author:			Neil Mitchell
+Homepage:		http://www-users.cs.york.ac.uk/~ndm/proplang/
+Category:		Graphics
+Build-Depends:		base, gtk, glib, glade
+Exposed-modules:	PropLang.Gtk, PropLang.Variable, PropLang.Event, PropLang.Value
+Ghc-options:		--make -O2 -Wall
