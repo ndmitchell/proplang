@@ -10,8 +10,8 @@ module PropLang.Variable(
 
 import PropLang.Event
 import PropLang.Value
+import Control.Monad
 import Data.IORef
-import Monad
 
 infixr 1  -<, =<=, -<-, =<>=
 infixl 8 =$=, =$$=

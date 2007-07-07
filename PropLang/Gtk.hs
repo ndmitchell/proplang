@@ -28,11 +28,10 @@ import PropLang.Event
 import Data.IORef
 import Data.Maybe
 import Data.List
-import Maybe
 import Foreign.C.Types
 import Control.Exception
 import Control.Concurrent
-import Monad
+import Control.Monad
 
 debug = putStrLn
 

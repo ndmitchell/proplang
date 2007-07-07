@@ -6,8 +6,8 @@ module PropLang.Event(
     blockEvent, unblockEvent
     ) where
 
+import Control.Monad
 import Data.IORef
-import Monad
 
 debug = putStrLn
 
