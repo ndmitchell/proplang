@@ -14,7 +14,7 @@
 
 module PropLang.Gtk(
     (!),
-    text, enabled, onClicked, onActivated,
+    text, enabled, menu, onClicked, onActivated,
     initPropLang, mainPropLang,
     Window, getWindow, showWindow, showWindowMain, getWindowRaw,
     MenuItem, getMenuItem,
@@ -49,7 +49,7 @@ import Control.Monad
 debug = putStrLn
 
 -- | Initialisation functions from GTK
-initPropLang :: IO ()
+initPropLang :: IO HandlerId
 initPropLang = do if rtsSupportsBoundThreads
                       then error "Don't link with -theaded, Gtk won't work"
                       else do
@@ -85,6 +85,10 @@ instance TextProvider TextEntry where; text = textentryText
 class EnabledProvider a where; enabled :: a -> Var Bool
 instance EnabledProvider TextView where; enabled = textviewEnabled
 instance EnabledProvider ToolButton where; enabled = toolbuttonEnabled
+
+-- |
+class MenuProvider a where; menu :: a -> Var Gtk.Menu
+instance MenuProvider MenuItem where; menu = menuitemSubmenu
 
 -- |
 class OnClickedProvider a where; onClicked :: a -> Event
@@ -210,7 +214,8 @@ instance GetCtrl TextEntry where ; getCtrl = getTextEntry
 
 data MenuItem = MenuItem {
     menuItem :: Gtk.MenuItem,
-    menuitemOnActivated :: Event
+    menuitemOnActivated :: Event,
+    menuitemSubmenu :: Var Gtk.Menu
     }
 
 -- |
@@ -221,8 +226,11 @@ liftMenuItem :: Gtk.MenuItem -> IO MenuItem
 liftMenuItem mi = do
     name <- widgetGetName mi
     miActivated <- newEventName $ "gtk.menuitem.activated [" ++ name ++ "]"
+    menuitemSubmenu <- gtkProp ("gtk.menuitem[" ++ name ++ "]")
+			       (menuItemSetSubmenu mi)
+			       (maybe menuNew (return . castToMenu) =<< menuItemGetSubmenu mi)
     mi `onActivateLeaf` raise miActivated
-    return $ MenuItem mi miActivated
+    return $ MenuItem mi miActivated menuitemSubmenu
 
 --
 -- | TextView
