@@ -1,3 +1,16 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Value.hs
+-- Copyright   :  (c) Neil Mitchell 2007
+-- License     :
+--
+-- Maintainer  :
+-- Stability   :  unstable
+-- Portability :  not portable
+--
+-- Defines PropLang values for use in Variables
+--
+-----------------------------------------------------------------------------
 
 module PropLang.Value(
     Value(..), newValueIORef

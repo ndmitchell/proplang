@@ -1,3 +1,16 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Event.hs
+-- Copyright   :  (c) Neil Mitchell 2007
+-- License     :
+--
+-- Maintainer  :
+-- Stability   :  unstable
+-- Portability :  not portable
+--
+-- PropLang events
+--
+-----------------------------------------------------------------------------
 
 module PropLang.Event(
     Eventer(..), Event, newEvent, newEventName,
@@ -11,6 +24,7 @@ import Data.IORef
 
 debug = putStrLn
 
+-- |
 class Eventer a where
     event :: a -> Event
 
@@ -18,18 +32,23 @@ instance Eventer Event where
     event = id
 
 
+-- | Event type. 
 data Event = Event
-                String
-		(IORef Bool)
-                (IORef Integer)
-                (IORef [(Integer, IO ())])
+                String --  Event Name
+		(IORef Bool) --  Enable flag
+                (IORef Integer) --  Next action index
+                (IORef [(Integer, IO ())]) --  List of indices and actions
 
+-- | EventHandle type.
+--   Stores an Event and action index.
 data EventHandle = EventHandle Event Integer
 
 
+-- | Create a new Event.
 newEvent :: IO Event
 newEvent = newEventName ""
 
+-- | Create a new Event with a name.
 newEventName :: String -> IO Event
 newEventName name = do
     debug $ "Creating event: " ++ name
@@ -39,6 +58,7 @@ newEventName name = do
     return $ Event name a n xs
 
 
+-- | Attach an action to an Event.
 (+=) :: Eventer a => a -> IO () -> IO EventHandle
 (+=) e x = do
     let Event name a n xs = event e
@@ -49,6 +69,7 @@ newEventName name = do
     debug $ "Added to event, now at " ++ show (length xs2+1) ++ ": " ++ name
     return $ EventHandle (event e) n2
 
+-- | Remove an action from an Event.
 remove :: EventHandle -> IO ()
 remove (EventHandle e x) = do
     let Event name a n xs = event e
@@ -57,6 +78,7 @@ remove (EventHandle e x) = do
     debug $ "Removed from event, now at " ++ show (length xs2-1) ++ ": " ++ name
 
 
+-- | Raise an Event.
 raise :: Eventer a => a -> IO ()
 raise e = do
     let Event name a n xs = event e
@@ -69,8 +91,10 @@ raise e = do
       debug $ "Not rasing disabled event: " ++ name
 
 
+-- | Block an Event.
 blockEvent :: Event -> IO ()
 blockEvent (Event _ a _ _) = writeIORef a False
 
+-- | Unblock an Event.
 unblockEvent :: Event -> IO ()
 unblockEvent (Event _ a _ _) = writeIORef a True

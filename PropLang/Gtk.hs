@@ -1,3 +1,16 @@
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Gtk.hs
+-- Copyright   :  (c) Neil Mitchell 2007
+-- License     :
+--
+-- Maintainer  :
+-- Stability   :  unstable
+-- Portability :  not portable
+--
+-- Bindings to Gtk
+--
+-----------------------------------------------------------------------------
 
 module PropLang.Gtk(
     (!),
@@ -35,16 +48,18 @@ import Control.Monad
 
 debug = putStrLn
 
--- Initialisation stuff from GTK
-
+-- | Initialisation functions from GTK
+initPropLang :: IO ()
 initPropLang = do if rtsSupportsBoundThreads
                       then error "Don't link with -theaded, Gtk won't work"
                       else do
                              initGUI
                              timeoutAddFull (yield >> return True) priorityDefaultIdle 50
-                             
+
+-- | Start Gtk
 mainPropLang = mainGUI
 
+-- | Start PropLang
 showWindowMain wnd = do
     window wnd `onDestroy` mainQuit
     showWindow wnd
@@ -55,22 +70,27 @@ showWindowMain wnd = do
 
 infixl 9 !
 
+-- | Access widget properties
 (!) :: a -> (a -> b) -> b
 object ! prop = prop object
 
+-- |
 class TextProvider a where; text :: a -> Var String
 instance TextProvider Window where; text = windowText
 instance TextProvider TextView where; text = textviewText
 instance TextProvider StatusBar where; text = statusbarText
 instance TextProvider TextEntry where; text = textentryText
 
+-- |
 class EnabledProvider a where; enabled :: a -> Var Bool
 instance EnabledProvider TextView where; enabled = textviewEnabled
 instance EnabledProvider ToolButton where; enabled = toolbuttonEnabled
 
+-- |
 class OnClickedProvider a where; onClicked :: a -> Event
 instance OnClickedProvider ToolButton where; onClicked = toolbuttonOnClicked
 
+-- |
 class OnActivatedProvider a where; onActivated :: a -> Event
 instance OnActivatedProvider MenuItem where; onActivated = menuitemOnActivated
 
@@ -99,16 +119,8 @@ gtkPropEvent name reg set get = newVarWithName name f
 	            get'   = do s <- get; debug (name++": Getting "++(show s)); return s
     -- we do not raise on set, as gtk does that anyway (tested with Entry)
 
--- Window
 
-data AWidget = AMenuItem MenuItem
-	     | ATextView TextView
-             | ATextEntry TextEntry
-             | AStatusBar StatusBar
-             | AToolButton ToolButton
-             | AUnknown
-
-
+-- | Window
 data Window = Window {
     xml :: GladeXML, window :: Gtk.Window,
     children :: [(String,AWidget)],
@@ -119,6 +131,7 @@ data Window = Window {
 getWindowRaw :: Window -> Gtk.Window
 getWindowRaw = window
 
+-- |
 getWindow :: FilePath -> String -> IO Window
 getWindow file name = do
         dialogXmlM <- xmlNew file
@@ -143,11 +156,18 @@ getWindow file name = do
                         return $ Just (name,x)
                 
 
-
+-- |
 showWindow :: Window -> IO ()
 showWindow wnd = widgetShowAll $ window wnd
 
+-- Widgets
 
+data AWidget = AMenuItem MenuItem
+	     | ATextView TextView
+             | ATextEntry TextEntry
+             | AStatusBar StatusBar
+             | AToolButton ToolButton
+             | AUnknown
 
 liftWidget :: Widget -> IO AWidget
 liftWidget x = do
@@ -184,12 +204,16 @@ instance GetCtrl StatusBar where ; getCtrl = getStatusBar
 instance GetCtrl ToolButton where ; getCtrl = getToolButton
 instance GetCtrl TextEntry where ; getCtrl = getTextEntry
 
+--
+-- | MenuItem
+--
 
 data MenuItem = MenuItem {
     menuItem :: Gtk.MenuItem,
     menuitemOnActivated :: Event
     }
 
+-- |
 getMenuItem :: Window -> String -> MenuItem
 getMenuItem window ctrl = getAWidget (\(AMenuItem x) -> x) window ctrl
 
@@ -200,6 +224,9 @@ liftMenuItem mi = do
     mi `onActivateLeaf` raise miActivated
     return $ MenuItem mi miActivated
 
+--
+-- | TextView
+--
 
 data TextView = TextView {
     textview :: Gtk.TextView,
@@ -215,6 +242,7 @@ getTextViewRaw :: TextView -> Gtk.TextView
 getTextViewRaw txt = textview txt
 
 
+-- |
 getTextView :: Window -> String -> TextView
 getTextView window ctrl = getAWidget (\(ATextView x) -> x) window ctrl
 
@@ -235,7 +263,9 @@ liftTextView txt = do
             end <- textBufferGetEndIter buf
             textBufferGetText buf strt end False
 
-
+--
+-- | TextEntry
+--
 
 data TextEntry = TextEntry {
     textentry :: Gtk.Entry,
@@ -243,6 +273,7 @@ data TextEntry = TextEntry {
     }
 
 
+-- |
 getTextEntry :: Window -> String -> TextEntry
 getTextEntry window ctrl = getAWidget (\(ATextEntry x) -> x) window ctrl
 
@@ -256,25 +287,17 @@ liftTextEntry txt = do
     return $ TextEntry txt textentryText
 
 
-widgetGetSensitivity :: WidgetClass self => self -> IO Bool
-widgetGetSensitivity x = do
-    y <- widgetGetState x
-    return (y /= StateInsensitive)
 
-
-newEnabled :: WidgetClass a => a -> String -> IO (Var Bool)
-newEnabled x name = gtkProp name (widgetSetSensitivity x) (widgetGetSensitivity x)
-
-
-ignore2 :: ((a -> b -> IO ()) -> IO ans) -> IO () -> IO ans
-ignore2 app f = app (\a b -> f)
-
+--
+-- | StatusBar
+--
 
 data StatusBar = StatusBar {
     statusbar :: Gtk.Statusbar, statusbarText :: Var String,
     context :: CUInt, statusbarValue :: IORef String
     }
 
+-- |
 getStatusBar :: Window -> String -> StatusBar
 getStatusBar window ctrl = getAWidget (\(AStatusBar x) -> x) window ctrl
 
@@ -295,6 +318,10 @@ liftStatusBar sb = do
             statusbarPush sb context x
             return ()
 
+--
+-- | ToolButton
+--
+
 data ToolButton = ToolButton {
     toolbutton :: Gtk.ToolButton,
     toolbuttonEnabled :: Var Bool,
@@ -302,6 +329,7 @@ data ToolButton = ToolButton {
     }
 
 
+-- |
 getToolButton :: Window -> String -> ToolButton
 getToolButton window ctrl = getAWidget (\(AToolButton x) -> x) window ctrl
 
@@ -313,9 +341,22 @@ liftToolButton tb = do
     tb `onToolButtonClicked` raise tbClicked
     return $ ToolButton tb tbEnabled tbClicked
 
+--
+-- Helper functions
+--
+
+widgetGetSensitivity :: WidgetClass self => self -> IO Bool
+widgetGetSensitivity x = do
+    y <- widgetGetState x
+    return (y /= StateInsensitive)
 
 
+newEnabled :: WidgetClass a => a -> String -> IO (Var Bool)
+newEnabled x name = gtkProp name (widgetSetSensitivity x) (widgetGetSensitivity x)
 
+
+ignore2 :: ((a -> b -> IO ()) -> IO ans) -> IO () -> IO ans
+ignore2 app f = app (\a b -> f)
 
 
 
@@ -332,6 +373,9 @@ getChildWindows w = do
         c <- getWidgetMaybe castToContainer w
         case c of
             Nothing -> return []
+	    Just c -> do
+		containerGetChildren c
+{-
             Just c -> do
                 i <- newIORef []
                 containerForeach c (f i)
@@ -340,7 +384,7 @@ getChildWindows w = do
         f i x = do
             r <- readIORef i
             writeIORef i (x:r)
-            
+-}          
 
 getWidgetMaybe :: GObjectClass obj => (obj -> conc) -> obj -> IO (Maybe conc)
 getWidgetMaybe cast o = 
