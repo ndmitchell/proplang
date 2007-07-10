@@ -14,7 +14,7 @@
 
 module PropLang.Gtk(
     (!),
-    text, enabled, menu, onClicked, onActivated,
+    text, enabled, key, menu, onClicked, onActivated,
     initPropLang, mainPropLang,
     Window, getWindow, showWindow, showWindowMain, getWindowRaw,
     ComboBox,
@@ -87,6 +87,10 @@ instance TextProvider TextEntry where; text = textentryText
 class EnabledProvider a where; enabled :: a -> Var Bool
 instance EnabledProvider TextView where; enabled = textviewEnabled
 instance EnabledProvider ToolButton where; enabled = toolbuttonEnabled
+
+-- |
+class KeyProvider a where; key :: a -> Var String
+instance KeyProvider TextView where; key = textviewKey
 
 -- |
 class MenuProvider a where; menu :: a -> Var Gtk.Menu
@@ -275,7 +279,8 @@ liftMenuItem mi = do
 
 data TextView = TextView {
     textview :: Gtk.TextView,
-    textviewText :: Var String, textviewEnabled :: Var Bool
+    textviewText :: Var String, textviewEnabled :: Var Bool,
+    textviewKey :: Var String
     }
 
 
@@ -300,13 +305,22 @@ liftTextView txt = do
                                 (textBufferSetText buf)
                                 (textBufferGet buf)
     textviewEnabled <- newEnabled txt ("gtk.textview.enabled[" ++ name ++ "]")
-    return $ TextView txt textviewText textviewEnabled
+    -- Might be buggy, but I've kept this alternate key API in for now
+    textviewKey <- newVarName ("gtk.textview.key[" ++ name ++ "]") ""
+    txt `onKeyPress` (handle textviewKey)
+    return $ TextView txt textviewText textviewEnabled textviewKey
 
     where
         textBufferGet buf = do
             strt <- textBufferGetStartIter buf
             end <- textBufferGetEndIter buf
             textBufferGetText buf strt end False
+        handle k x = do
+            case x of
+                Key{eventKeyName = name} -> do 
+		    k -< name
+		    return False
+                _ -> return False
 
 --
 -- | TextEntry
