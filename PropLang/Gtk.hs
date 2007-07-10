@@ -17,6 +17,7 @@ module PropLang.Gtk(
     text, enabled, menu, onClicked, onActivated,
     initPropLang, mainPropLang,
     Window, getWindow, showWindow, showWindowMain, getWindowRaw,
+    ComboBox,
     MenuItem, getMenuItem,
     TextView, getTextView, getTextViewRaw,
     textviewBuffer,
@@ -30,7 +31,7 @@ module PropLang.Gtk(
     ) where
 
 import qualified Graphics.UI.Gtk as Gtk
-import Graphics.UI.Gtk hiding (Action, Window, ComboBox, MenuItem, TextView, ToolButton, Event, onClicked)
+import Graphics.UI.Gtk hiding (Action, Window, ComboBox, MenuItem, TextView, ToolButton, Event, onClicked, onChanged)
 import Graphics.UI.Gtk.Glade
 import System.Glib
 
@@ -77,6 +78,7 @@ object ! prop = prop object
 -- |
 class TextProvider a where; text :: a -> Var String
 instance TextProvider Window where; text = windowText
+instance TextProvider ComboBox where; text = comboboxText
 instance TextProvider TextView where; text = textviewText
 instance TextProvider StatusBar where; text = statusbarText
 instance TextProvider TextEntry where; text = textentryText
@@ -93,6 +95,10 @@ instance MenuProvider MenuItem where; menu = menuitemSubmenu
 -- |
 class OnClickedProvider a where; onClicked :: a -> Event
 instance OnClickedProvider ToolButton where; onClicked = toolbuttonOnClicked
+
+-- |
+class OnChangedProvider a where; onChanged :: a -> Event
+instance OnChangedProvider ComboBox where; onChanged = comboboxOnChanged
 
 -- |
 class OnActivatedProvider a where; onActivated :: a -> Event
@@ -232,11 +238,11 @@ liftComboBox cb = do
     cbChanged <- newEventName $ "gtk.combobox.changed [" ++ name ++ "]"
     -- Might be better just to use this widget as the source since
     -- it doesn't work as expected (i.e. appends) the other way
-    comboboxText <- gtkPropEvent ("gtk.combobox[" ++ name ++ "]")
-				  (onChanged cb)
+    comboboxText <- gtkPropEvent ("gtk.combobox.text[" ++ name ++ "]")
+				  (afterChanged cb)
 				  (comboBoxAppendText cb)
 				  (return . maybe "" id =<< comboBoxGetActiveText cb)
-    cb `onChanged` raise cbChanged
+    cb `Gtk.onChanged` raise cbChanged
     return $ ComboBox cb cbChanged comboboxText
 
 --
@@ -257,7 +263,7 @@ liftMenuItem :: Gtk.MenuItem -> IO MenuItem
 liftMenuItem mi = do
     name <- widgetGetName mi
     miActivated <- newEventName $ "gtk.menuitem.activated [" ++ name ++ "]"
-    menuitemSubmenu <- gtkProp ("gtk.menuitem[" ++ name ++ "]")
+    menuitemSubmenu <- gtkProp ("gtk.menuitem.menu[" ++ name ++ "]")
 			       (menuItemSetSubmenu mi)
 			       (maybe menuNew (return . castToMenu) =<< menuItemGetSubmenu mi)
     mi `onActivateLeaf` raise miActivated
