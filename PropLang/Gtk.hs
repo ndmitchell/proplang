@@ -30,7 +30,7 @@ module PropLang.Gtk(
     ) where
 
 import qualified Graphics.UI.Gtk as Gtk
-import Graphics.UI.Gtk hiding (Action, Window, MenuItem, TextView, ToolButton, Event, onClicked)
+import Graphics.UI.Gtk hiding (Action, Window, ComboBox, MenuItem, TextView, ToolButton, Event, onClicked)
 import Graphics.UI.Gtk.Glade
 import System.Glib
 
@@ -166,7 +166,8 @@ showWindow wnd = widgetShowAll $ window wnd
 
 -- Widgets
 
-data AWidget = AMenuItem MenuItem
+data AWidget = AComboBox ComboBox
+	     | AMenuItem MenuItem
 	     | ATextView TextView
              | ATextEntry TextEntry
              | AStatusBar StatusBar
@@ -175,12 +176,14 @@ data AWidget = AMenuItem MenuItem
 
 liftWidget :: Widget -> IO AWidget
 liftWidget x = do
+    cb <- getWidgetMaybe castToComboBox x
     mi <- getWidgetMaybe castToMenuItem x
     tv <- getWidgetMaybe castToTextView x
     te <- getWidgetMaybe castToEntry x
     sb <- getWidgetMaybe castToStatusbar x
     tb <- getWidgetMaybe castToToolButton x
     case () of
+	_ | isJust cb -> f AComboBox liftComboBox cb
         _ | isJust mi -> f AMenuItem liftMenuItem mi
         _ | isJust tv -> f ATextView liftTextView tv
         _ | isJust sb -> f AStatusBar liftStatusBar sb
@@ -202,11 +205,39 @@ getAWidget f wnd name = case lookup name (children wnd) of
 class GetCtrl a where
     getCtrl :: Window -> String -> a
 
+instance GetCtrl ComboBox where ; getCtrl = getComboBox
 instance GetCtrl MenuItem where ; getCtrl = getMenuItem
 instance GetCtrl TextView where ; getCtrl = getTextView
 instance GetCtrl StatusBar where ; getCtrl = getStatusBar
 instance GetCtrl ToolButton where ; getCtrl = getToolButton
 instance GetCtrl TextEntry where ; getCtrl = getTextEntry
+
+--
+-- | ComboBox
+--
+
+data ComboBox = ComboBox {
+    comboBox :: Gtk.ComboBox,
+    comboboxOnChanged :: Event,
+    comboboxText :: Var String
+    }
+
+-- |
+getComboBox :: Window -> String -> ComboBox
+getComboBox window ctrl = getAWidget (\(AComboBox x) -> x) window ctrl
+
+liftComboBox :: Gtk.ComboBox -> IO ComboBox
+liftComboBox cb = do
+    name <- widgetGetName cb
+    cbChanged <- newEventName $ "gtk.combobox.changed [" ++ name ++ "]"
+    -- Might be better just to use this widget as the source since
+    -- it doesn't work as expected (i.e. appends) the other way
+    comboboxText <- gtkPropEvent ("gtk.combobox[" ++ name ++ "]")
+				  (onChanged cb)
+				  (comboBoxAppendText cb)
+				  (return . maybe "" id =<< comboBoxGetActiveText cb)
+    cb `onChanged` raise cbChanged
+    return $ ComboBox cb cbChanged comboboxText
 
 --
 -- | MenuItem
