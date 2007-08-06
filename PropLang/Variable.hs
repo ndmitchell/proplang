@@ -15,6 +15,7 @@
 module PropLang.Variable(
     Var, newVar, newVarName, newVarWith, newVarWithName,
     getVar,
+    injectWith,
     with, with1, with2, with3,
     (=<), (=$=), (=$$=),
     (-<), (-<-), (=<=), (=<>=),
@@ -74,6 +75,10 @@ instance Eventer (Var a) where
 -- | Inject a value from a Variable into another
 (-<-) :: Var a -> Var a -> IO ()
 (-<-) varto varfrom = getVar varfrom >>= (varto -<)
+
+-- | Inject a value by running a function on another Variable
+injectWith :: Var a -> Var b -> (b -> a) -> IO ()
+injectWith varto varfrom f = getVar varfrom >>= (varto -<) . f
 
 -- | Tie another Variable with this one
 (=<=) :: Var a -> Var a -> IO ()
