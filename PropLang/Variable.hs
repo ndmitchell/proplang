@@ -84,7 +84,6 @@ injectWith varto varfrom f = getVar varfrom >>= (varto -<) . f
 (=<=) :: Var a -> Var a -> IO ()
 var1 =<= var2 = var1 =< with1 var2 id
 
-
 -- | Tie two Variables together with filter functions
 tie :: Var a -> Var b -> (a->b) -> (b->a) ->  IO ()
 tie var1@(Var val1 _ _) var2@(Var val2 _ _) f12 f21 = do
@@ -101,7 +100,7 @@ tie var1@(Var val1 _ _) var2@(Var val2 _ _) f12 f21 = do
 (=<>=) :: Var a -> Var a -> IO ()
 var1 =<>= var2 = tie var1 var2 id id
 
--- |
+-- | Shortcut for with1
 with :: Var a -> (a -> x) -> ([Event], IO x)
 with = with1
 
@@ -129,10 +128,12 @@ with3 var1 var2 var3 f = f =$$= var1 =$= var2 =$= var3
         g = f >>= valSet valTo
 
 -- First parameter
+-- | Run a function over a Variable
 (=$$=) :: (a->x) -> Var a -> ([Event], IO x)
 f =$$= x = ([], return f) =$= x
 
 -- Other parameters
+-- | Apply a function to a Var, then pass it on or return a result
 (=$=) :: ([Event], IO (a -> x)) -> Var a -> ([Event], IO x)
 (e,f) =$= v = (event v : e, f `ap` (getVar v))
 
