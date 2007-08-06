@@ -422,7 +422,10 @@ ignore2 app f = app (\a b -> f)
 -- window enumeration
 getChildWindowsAll :: Widget -> IO [Widget]
 getChildWindowsAll w = do
-    child <- getChildWindows w
+    res <- getWidgetMaybe castToMenuItem w
+    child <- case res of
+      Nothing -> getChildWindows w
+      Just m -> getMenuChildren m
     child2 <- mapM getChildWindowsAll child
     return $ child ++ concat child2
 
@@ -444,6 +447,17 @@ getChildWindows w = do
             r <- readIORef i
             writeIORef i (x:r)
 -}          
+
+-- A hack to enumerate menu items into PropLang's model
+getMenuChildren :: Gtk.MenuItem -> IO [Widget]
+getMenuChildren m = do
+    sub <- menuItemGetSubmenu m
+    case sub of
+      Nothing -> return []
+      Just menu -> do
+        ws <- getChildWindowsAll menu
+        --ws2 <- mapM (getMenuChildren . castToMenuItem) ws
+        return ws
 
 getWidgetMaybe :: GObjectClass obj => (obj -> conc) -> obj -> IO (Maybe conc)
 getWidgetMaybe cast o = 
