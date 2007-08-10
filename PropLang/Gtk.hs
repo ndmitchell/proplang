@@ -23,6 +23,7 @@ module PropLang.Gtk(
     textviewBuffer,
     StatusBar, getStatusBar,
     ToolButton, getToolButton,
+    FontButton, getFontButton,
     TextEntry, getTextEntry,
     getCtrl,
     
@@ -31,7 +32,7 @@ module PropLang.Gtk(
     ) where
 
 import qualified Graphics.UI.Gtk as Gtk
-import Graphics.UI.Gtk hiding (Action, Window, ComboBox, MenuItem, TextView, ToolButton, Event, onClicked, onChanged)
+import Graphics.UI.Gtk hiding (Action, Window, ComboBox, MenuItem, TextView, ToolButton, FontButton, Event, onClicked, onChanged)
 import Graphics.UI.Gtk.Glade
 import System.Glib
 
@@ -82,6 +83,7 @@ instance TextProvider ComboBox where; text = comboboxText
 instance TextProvider TextView where; text = textviewText
 instance TextProvider StatusBar where; text = statusbarText
 instance TextProvider TextEntry where; text = textentryText
+instance TextProvider FontButton where; text = fontbuttonText
 
 -- |
 class EnabledProvider a where; enabled :: a -> Var Bool
@@ -99,6 +101,7 @@ instance MenuProvider MenuItem where; menu = menuitemSubmenu
 -- |
 class OnClickedProvider a where; onClicked :: a -> Event
 instance OnClickedProvider ToolButton where; onClicked = toolbuttonOnClicked
+instance OnClickedProvider FontButton where; onClicked = fontbuttonOnClicked
 
 -- |
 class OnChangedProvider a where; onChanged :: a -> Event
@@ -182,6 +185,7 @@ data AWidget = AComboBox ComboBox
              | ATextEntry TextEntry
              | AStatusBar StatusBar
              | AToolButton ToolButton
+	     | AFontButton FontButton
              | AUnknown
 
 liftWidget :: Widget -> IO AWidget
@@ -192,12 +196,14 @@ liftWidget x = do
     te <- getWidgetMaybe castToEntry x
     sb <- getWidgetMaybe castToStatusbar x
     tb <- getWidgetMaybe castToToolButton x
+    fb <- getWidgetMaybe castToFontButton x
     case () of
 	_ | isJust cb -> f AComboBox liftComboBox cb
         _ | isJust mi -> f AMenuItem liftMenuItem mi
         _ | isJust tv -> f ATextView liftTextView tv
         _ | isJust sb -> f AStatusBar liftStatusBar sb
         _ | isJust tb -> f AToolButton liftToolButton tb
+	_ | isJust fb -> f AFontButton liftFontButton fb
         _ | isJust te -> f ATextEntry liftTextEntry te
         _ -> return AUnknown
     where
@@ -221,6 +227,7 @@ instance GetCtrl TextView where ; getCtrl = getTextView
 instance GetCtrl StatusBar where ; getCtrl = getStatusBar
 instance GetCtrl ToolButton where ; getCtrl = getToolButton
 instance GetCtrl TextEntry where ; getCtrl = getTextEntry
+instance GetCtrl FontButton where ; getCtrl = getFontButton
 
 --
 -- | ComboBox
@@ -399,6 +406,33 @@ liftToolButton tb = do
     tbClicked <- newEventName $ "gtk.toolbutton.clicked[" ++ name ++ "]"
     tb `onToolButtonClicked` raise tbClicked
     return $ ToolButton tb tbEnabled tbClicked
+
+--
+-- | FontButton
+--
+
+data FontButton = FontButton {
+    fontbutton :: Gtk.FontButton,
+    fontbuttonEnabled :: Var Bool,
+    fontbuttonOnClicked :: Event,
+    fontbuttonText :: Var String
+    }
+
+-- |
+getFontButton :: Window -> String -> FontButton
+getFontButton window ctrl = getAWidget (\(AFontButton x) -> x) window ctrl
+
+liftFontButton :: Gtk.FontButton -> IO FontButton
+liftFontButton fb = do
+    name <- widgetGetName fb
+    fbEnabled <- newEnabled fb ("gtk.toolbutton.enabled[" ++ name ++ "]")
+    fbClicked <- newEventName $ "gtk.toolbutton.clicked[" ++ name ++ "]"
+    fb `Gtk.onClicked` raise fbClicked
+    fontbuttonText <- gtkPropEvent ("gtk.fontbutton.text[" ++ name ++ "]")
+				   (afterFontSet fb)
+				   (\x -> fontButtonSetFontName fb x >> return ())
+				   (fontButtonGetFontName fb)
+    return $ FontButton fb fbEnabled fbClicked fontbuttonText
 
 --
 -- Helper functions
