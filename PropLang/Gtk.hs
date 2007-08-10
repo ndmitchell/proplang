@@ -251,10 +251,31 @@ liftComboBox cb = do
     -- it doesn't work as expected (i.e. appends) the other way
     comboboxText <- gtkPropEvent ("gtk.combobox.text[" ++ name ++ "]")
 				  (afterChanged cb)
-				  (comboBoxAppendText cb)
+				  (comboBoxSetActiveText cb)
 				  (return . maybe "" id =<< comboBoxGetActiveText cb)
     cb `Gtk.onChanged` raise cbChanged
     return $ ComboBox cb cbChanged comboboxText
+
+    where
+	comboBoxSetActiveText cb text = do
+	    model <- comboBoxGetModel cb
+	    iter  <- treeModelGetIterFirst (fromJust model)
+	    target <- findInModel (fromJust model) iter text
+	    case target of
+		Nothing -> return ()
+		Just x  -> comboBoxSetActiveIter cb x
+	findInModel :: TreeModel -> Maybe TreeIter -> String -> IO (Maybe TreeIter)
+	findInModel model iter text = do
+	    case iter of
+		Nothing -> return Nothing
+		Just x  -> do
+		    val <- treeModelGetValue model x 0
+		    next <- treeModelIterNext model x
+		    case val of 
+			GVstring (Just y) -> if y == text
+						then return $ Just x
+						else findInModel model next text
+			_                 -> findInModel model next text
 
 --
 -- | MenuItem
