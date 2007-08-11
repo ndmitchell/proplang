@@ -334,7 +334,8 @@ liftTextView txt = do
                                 (textBufferGet buf)
     textviewEnabled <- newEnabled txt ("gtk.textview.enabled[" ++ name ++ "]")
     -- Might be buggy, but I've kept this alternate key API in for now
-    textviewKey <- newVarName ("gtk.textview.key[" ++ name ++ "]") ""
+    textviewKey <- newVarWithName ("gtk.textview.key[" ++ name ++ "]")
+	               (`newValueAlwaysTrigger` "")
     txt `onKeyPress` (handle textviewKey)
     return $ TextView txt textviewText textviewEnabled textviewKey
 
@@ -468,6 +469,17 @@ widgetGetSensitivity x = do
 newEnabled :: WidgetClass a => a -> String -> IO (Var Bool)
 newEnabled x name = gtkProp name (widgetSetSensitivity x) (widgetGetSensitivity x)
 
+-- Special value function for things like key events 
+-- that should always trigger
+newValueAlwaysTrigger :: (Eq a) => Event -> a -> IO (Value a)
+newValueAlwaysTrigger e x = do
+        i <- newIORef x
+        return $ Value (setter i) (readIORef i)
+    where
+        setter i x = do
+	    old <- readIORef i
+	    writeIORef i x
+	    raise e
 
 ignore2 :: ((a -> b -> IO ()) -> IO ans) -> IO () -> IO ans
 ignore2 app f = app (\a b -> f)
