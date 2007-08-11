@@ -7,7 +7,8 @@ Description:
 Version:                0.1
 License:                BSD3
 License-file:           LICENSE
-Author:                 Neil Mitchell
+Author:                 Neil Mitchell, Asumu Takikawa
+Stability:              Alpha
 Homepage:               http://www-users.cs.york.ac.uk/~ndm/proplang/
 Category:               User Interfaces
 Build-Depends:          base>=2.0, gtk>=0.9.11, glib>=0.9.11, glade>=0.9.11
