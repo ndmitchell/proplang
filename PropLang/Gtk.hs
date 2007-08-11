@@ -329,9 +329,9 @@ liftTextView txt = do
     name <- widgetGetName txt
     buf <- textViewGetBuffer txt
     textviewText <- gtkPropEvent ("gtk.textview.text[" ++ name ++ "]")
-                                (afterBufferChanged buf)
-                                (textBufferSetText buf)
-                                (textBufferGet buf)
+                                 (afterBufferChanged buf)
+                                 (textBufferSetText buf)
+                                 (textBufferGet buf)
     textviewEnabled <- newEnabled txt ("gtk.textview.enabled[" ++ name ++ "]")
     -- Might be buggy, but I've kept this alternate key API in for now
     textviewKey <- newVarWithName ("gtk.textview.key[" ++ name ++ "]")
