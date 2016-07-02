@@ -21,6 +21,11 @@ module PropLang.Variable(
     (-<), (-<-), (=<=), (=<>=),
     tie
     ) where
+    
+-- The two missing operations on Var are probably:
+-- entangle :: (Var a, Var b) -> Var (a,b)
+-- detangle :: Var (a,b) -> (Var a, Var b)
+-- plus all the applicatives/isomorphisms
 
 import PropLang.Event
 import PropLang.Value
